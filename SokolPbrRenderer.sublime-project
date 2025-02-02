@@ -102,12 +102,23 @@
 		],
 		"custom_functions":
 		[
+			"AppApi APP_GET_API_DEF()",
+			"bool APP_UPDATE_DEF(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)",
+			"sg_backend GetSokolBackend()",
+			"sg_swapchain GET_SOKOL_SWAPCHAIN_DEF()",
+			"void InitSokolGraphics(sg_desc sokolGraphicsDesc)",
+			"void ShutdownSokolGraphics()",
+			"void* APP_INIT_DEF(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi)",
 		],
 		"custom_globals":
 		[
 		],
 		"custom_types":
 		[
+			"AppGetApi_f",
+			"AppInit_f",
+			"GetWindowSize_f",
+			"PlatformApi",
 		],
 	},
 }

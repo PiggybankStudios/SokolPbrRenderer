@@ -134,7 +134,7 @@ if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_release" /LIBPATH:"%core%\third_party\_lib_release"
 )
 
-set pig_core_defines=/DPIG_CORE_DLL_INCLUDE_GFX_SYSTEM_GLOBAL=1
+set pig_core_defines=/DBUILD_WITH_SOKOL=1 /DPIG_CORE_DLL_INCLUDE_GFX_SYSTEM_GLOBAL=1
 
 if "%DUMP_PREPROCESSOR%"=="1" (
 	REM /P = Output the result of the preprocessor to {file_name}.i (disables the actual compilation)
@@ -335,7 +335,7 @@ if "%BUILD_APP_EXE%"=="1" (
 set app_source_path=%app%/app_main.c
 set app_dll_path=%PROJECT_DLL_NAME%.dll
 set app_so_path=%PROJECT_DLL_NAME%.so
-set app_dll_cl_args=%common_cl_flags% /Fe%app_dll_path% %app_source_path% /link %common_ld_flags% %pig_core_lib_path% /DLL %shader_object_files%
+set app_dll_cl_args=%common_cl_flags% /Fe%app_dll_path% %app_source_path% /link %common_ld_flags% %pig_core_lib_path% %shader_object_files% /DLL
 set app_dll_clang_args=%common_clang_flags% %linux_clang_flags% -shared -lpig_core  -o %app_so_path% ../%app_source_path% %shader_linux_object_files%
 
 if "%BUILD_INTO_SINGLE_UNIT%"=="1" (
