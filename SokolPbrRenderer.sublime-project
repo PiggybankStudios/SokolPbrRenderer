@@ -1,0 +1,113 @@
+{
+	"folders":
+	[
+		{
+			"name": "Game",
+			"path": ".",
+			"folder_exclude_patterns": [
+				"_build",
+				"_data",
+				"core",
+				"third_party",
+			],
+		},
+		{
+			"name": "PigCore",
+			"path": "core",
+			"folder_exclude_patterns": [
+				"_build",
+				"_media",
+				"_template",
+				"third_party",
+				"tests",
+			],
+			"file_exclude_patterns": [
+				".gitignore",
+				"*.sublime-project",
+				"*.sublime-workspace",
+				"NOTES.todo",
+				"LICENSE.txt",
+				"README.md",
+				"*.rdbg",
+				"build.bat",
+				"build.sh",
+				"build_config.h",
+			],
+		},
+		{
+			"name": "Stb",
+			"path": "core/third_party/stb",
+			"file_include_patterns": [
+				"stb_image.h",
+				"stb_image_write.h",
+				"stb_rect_pack.h",
+				"stb_sprintf.h",
+				"stb_truetype.h",
+				"stb_vorbis.h",
+			],
+		},
+		{
+			"name": "raylib",
+			"path": "core/third_party/raylib",
+			"file_exclude_patterns": [
+				"LICENSE",
+				"README.md",
+			],
+		},
+		{
+			"name": "Box2D",
+			"path": "core/third_party/box2d",
+			"file_exclude_patterns": [
+				"LICENSE",
+			],
+		},
+		{
+			"name": "Sokol",
+			"path": "core/third_party/sokol",
+			"folder_exclude_patterns": [
+				".github",
+				"tests",
+			],
+			"file_exclude_patterns": [
+				".gitignore",
+				".editorconfig",
+				"LICENSE",
+				"README.md",
+			],
+		},
+		{
+			"name": "HandmadeMath",
+			"path": "core/third_party/handmade_math",
+			"file_exclude_patterns": [
+				"LICENSE",
+				"README.md",
+			],
+		},
+		{
+			"name": "meow_hash",
+			"path": "core/third_party/meow_hash",
+			"file_exclude_patterns": [
+				"LICENSE",
+				"README.md",
+			],
+		},
+	],
+	"settings":
+	{
+		"build_options":
+		[
+		],
+		"custom_constants":
+		[
+		],
+		"custom_functions":
+		[
+		],
+		"custom_globals":
+		[
+		],
+		"custom_types":
+		[
+		],
+	},
+}
