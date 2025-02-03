@@ -116,10 +116,10 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	// sphereBuffer; TODO:
 	
 	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
-	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
-	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
-	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
-	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
+	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
+	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
+	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
+	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
 	
 	app->spherePos = V3_Zero;
@@ -153,14 +153,15 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	v2 windowSize = ToV2Fromi(platform->GetWindowSize());
 	
 	r32 angle = OscillateBy(app->frameIndex, 0, TwoPi32, 5000, 0);
-	app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, 1.0f, SinR32(angle) * 4.5f));
+	r32 height = OscillateBy(app->frameIndex, -1.0f, 1.0f, 13000, 0);
+	app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
 	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
 	
 	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
 	{
 		BindShader(&app->main3dShader);
-		BindTexture(&app->albedoTexture);
-		SetSourceRec(NewV4(0, 0, (r32)app->albedoTexture.Width, (r32)app->albedoTexture.Height));
+		BindTexture(&app->occlusionTexture);
+		SetSourceRec(NewV4(0, 0, (r32)app->occlusionTexture.Width, (r32)app->occlusionTexture.Height));
 		
 		#if 0
 		mat4 projMat = Mat4_Identity;
@@ -196,8 +197,8 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		#endif
 		
 		// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
-		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
 		DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
+		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
 	}
 	EndFrame();
 	

@@ -28,64 +28,20 @@ void InitSokol()
 	app->squareBuffer = InitVertBuffer2D(stdHeap, StrLit("square"), VertBufferUsage_Static, ArrayCount(squareVertices), &squareVertices[0], false);
 	Assert(app->squareBuffer.error == Result_Success);
 	
-	Vertex3D cubeVertices[] = {
-		//Back Face (Green)
-		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=0.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=1.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 0.0f, .nZ=-1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
-		
-		//Top Face (White)
-		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
-		
-		//Right Face (Red)
-		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .nX= 1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
-		
-		//Front Face (Blue)
-		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=0.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=1.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .nX= 0.0f, .nY= 0.0f, .nZ= 1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
-		
-		//Left Face (Orange)
-		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .nX=-1.0f, .nY= 0.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
-		
-		//Bottom Face (Yellow)
-		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .nX= 0.0f, .nY=-1.0f, .nZ= 0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
-	};
-	app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, ArrayCount(cubeVertices), &cubeVertices[0], false);
+	Color32 cubeSideColors[BOX_NUM_FACES] = { MonokaiWhite, MonokaiRed, MonokaiBlue, MonokaiOrange, MonokaiGreen, MonokaiYellow };
+	GeneratedMesh cubeMesh = GenerateVertsForBoxEx(scratch, NewBoxV(V3_Zero, V3_One), &cubeSideColors[0]);
+	Vertex3D* cubeVertices = AllocArray(Vertex3D, scratch, cubeMesh.numIndices);
+	for (uxx iIndex = 0; iIndex < cubeMesh.numIndices; iIndex++)
+	{
+		MyMemCopy(&cubeVertices[iIndex], &cubeMesh.vertices[cubeMesh.indices[iIndex]], sizeof(Vertex3D));
+	}
+	app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, cubeMesh.numIndices, cubeVertices, false);
 	Assert(app->cubeBuffer.error == Result_Success);
 	
 	GeneratedMesh sphereMesh = GenerateVertsForSphere(scratch, NewSphereV(V3_Zero, 1.0f), 12, 20, White);
-	PrintLine_D("There are %llu indice%s and %llu vertice%s", sphereMesh.numIndices, Plural(sphereMesh.numIndices, "s"), sphereMesh.numVertices, Plural(sphereMesh.numVertices, "s"));
 	Vertex3D* sphereVertices = AllocArray(Vertex3D, scratch, sphereMesh.numIndices);
 	for (uxx iIndex = 0; iIndex < sphereMesh.numIndices; iIndex++)
 	{
-		// sphereVertices[iIndex] = sphereMesh.vertices[sphereMesh.indices[iIndex]];
 		MyMemCopy(&sphereVertices[iIndex], &sphereMesh.vertices[sphereMesh.indices[iIndex]], sizeof(Vertex3D));
 	}
 	app->sphereBuffer = InitVertBuffer3D(stdHeap, StrLit("sphere"), VertBufferUsage_Static, sphereMesh.numIndices, sphereVertices, false);
