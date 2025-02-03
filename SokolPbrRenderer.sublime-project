@@ -10,6 +10,10 @@
 				"core",
 				"third_party",
 			],
+			"file_exclude_patterns": [
+				"*.glsl.h",
+				"*.glsl.c",
+			],
 		},
 		{
 			"name": "PigCore",
@@ -103,6 +107,7 @@
 		"custom_functions":
 		[
 			"AppApi APP_GET_API_DEF()",
+			"Texture LoadTexture(Arena* arena, const char* path)",
 			"bool APP_UPDATE_DEF(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)",
 			"sg_backend GetSokolBackend()",
 			"sg_swapchain GET_SOKOL_SWAPCHAIN_DEF()",

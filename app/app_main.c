@@ -73,8 +73,25 @@ void UpdateDllGlobals(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, 
 	platformInfo = inPlatformInfo;
 	platform = inPlatformApi;
 	stdHeap = inPlatformInfo->platformStdHeap;
+	#else
+	UNUSED(inPlatformApi);
+	UNUSED(inPlatformInfo);
 	#endif
 	app = (AppData*)memoryPntr;
+}
+
+Texture LoadTexture(Arena* arena, const char* path)
+{
+	ScratchBegin1(scratch, arena);
+	Slice fileContents = Slice_Empty;
+	bool readFileResult = OsReadFile(FilePathLit(path), scratch, false, &fileContents);
+	Assert(readFileResult);
+	ImageData imageData = ZEROED;
+	Result parseResult = TryParseImageFile(fileContents, scratch, &imageData);
+	Assert(parseResult == Result_Success);
+	Texture result = InitTexture(arena, GetFileNamePart(FilePathLit(path), true), imageData.size, imageData.pixels, TextureFlag_IsRepeating);
+	ScratchEnd(scratch);
+	return result;
 }
 
 // +==============================+
@@ -96,6 +113,23 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	InitSokol();
 	
+	// sphereBuffer; TODO:
+	
+	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
+	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
+	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
+	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
+	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
+	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
+	
+	app->spherePos = V3_Zero;
+	app->sphereRadius = 0.5f;
+	
+	app->cameraPos = NewV3(3, 0.5f, 2);
+	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+	
+	app->lightPos = NewV3(-0.5f, 0.8f, 3);
+	
 	app->initialized = true;
 	ScratchEnd(scratch);
 	ScratchEnd(scratch2);
@@ -114,14 +148,21 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	ScratchBegin2(scratch3, scratch, scratch2);
 	bool shouldContinueRunning = true;
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr);
+	IncrementU64By(app->frameIndex, 16);
 	
 	v2 windowSize = ToV2Fromi(platform->GetWindowSize());
 	
+	r32 angle = OscillateBy(app->frameIndex, 0, TwoPi32, 5000, 0);
+	app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, 1.0f, SinR32(angle) * 4.5f));
+	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+	
 	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
 	{
-		BindShader(&app->main2dShader);
-		BindTexture(&app->gradientTexture);
+		BindShader(&app->main3dShader);
+		BindTexture(&app->albedoTexture);
+		SetSourceRec(NewV4(0, 0, (r32)app->albedoTexture.Width, (r32)app->albedoTexture.Height));
 		
+		#if 0
 		mat4 projMat = Mat4_Identity;
 		TransformMat4(&projMat, MakeScaleXYZMat4(1.0f/(windowSize.Width/2.0f), 1.0f/(windowSize.Height/2.0f), 1.0f));
 		TransformMat4(&projMat, MakeTranslateXYZMat4(-1.0f, -1.0f, 0.0f));
@@ -129,19 +170,33 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		SetProjectionMat(projMat);
 		SetViewMat(Mat4_Identity);
 		SetWorldMat(Mat4_Identity);
-		SetSourceRec(NewV4(0, 0, (r32)app->gradientTexture.Width, (r32)app->gradientTexture.Height));
 		// SetUniformByNameV2(StrLit("main2d_texture0_size"), ToV2Fromi(app->gradientTexture.size));
+		#endif
 		
-		v2 tileSize = ToV2Fromi(app->gradientTexture.size); //NewV2(48, 27);
-		i32 numColumns = CeilR32i(windowSize.Width / tileSize.Width);
-		i32 numRows = CeilR32i(windowSize.Height / tileSize.Height);
+		#if defined(SOKOL_GLCORE)
+		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(30), windowSize.Width/windowSize.Height, 0.05f, 100);
+		#else
+		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(30), windowSize.Width/windowSize.Height, 0.05f, 100);
+		#endif
+		SetProjectionMat(projMat);
+		mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);
+		SetViewMat(viewMat);
+		
+		#if 0
+		v2 tileSize = NewV2(0.1f, 0.1f); //ToV2Fromi(app->gradientTexture.size); //NewV2(48, 27);
+		i32 numColumns = 100; //CeilR32i(windowSize.Width / tileSize.Width);
+		i32 numRows = 100; //CeilR32i(windowSize.Height / tileSize.Height);
 		for (i32 yIndex = 0; yIndex < numRows; yIndex++)
 		{
 			for (i32 xIndex = 0; xIndex < numColumns; xIndex++)
 			{
-				DrawRectangle(&app->main2dShader, NewV2(tileSize.Width * xIndex, tileSize.Height * yIndex), tileSize, White);
+				DrawRectangle(NewV2(tileSize.Width * xIndex, tileSize.Height * yIndex), tileSize, White);
 			}
 		}
+		#endif
+		
+		DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
+		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
 	}
 	EndFrame();
 	

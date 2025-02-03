@@ -167,13 +167,15 @@ void PlatSappFrame(void)
 
 sapp_desc sokol_main(int argc, char* argv[])
 {
+	UNUSED(argc);
+	UNUSED(argv);
 	return (sapp_desc){
 		.init_cb = PlatSappInit,
 		.frame_cb = PlatSappFrame,
 		.cleanup_cb = PlatSappCleanup,
 		.event_cb = PlatSappEvent,
-		.width = 1900,
-		.height = 1000,
+		.width = 800,
+		.height = 600,
 		.window_title = "Loading...",
 		.icon.sokol_default = true,
 		.logger.func = SokolLogCallback,

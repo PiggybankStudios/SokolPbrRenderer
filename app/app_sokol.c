@@ -7,6 +7,7 @@ Description:
 */
 
 #include "main2d_shader.glsl.h"
+#include "main3d_shader.glsl.h"
 
 void InitSokol()
 {
@@ -27,6 +28,58 @@ void InitSokol()
 	app->squareBuffer = InitVertBuffer2D(stdHeap, StrLit("square"), VertBufferUsage_Static, ArrayCount(squareVertices), &squareVertices[0], false);
 	Assert(app->squareBuffer.error == Result_Success);
 	
+	Vertex3D cubeVertices[] = {
+		//Back Face (Green)
+		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .tX=0.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .tX=1.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=1.0f, .B=0.2f, .A=1.0f },
+		
+		//Top Face (White)
+		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=1.0f, .A=1.0f },
+		
+		//Right Face (Red)
+		{ .X=1.0f, .Y=1.0f, .Z=0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.2f, .B=0.2f, .A=1.0f },
+		
+		//Front Face (Blue)
+		{ .X=1.0f, .Y=1.0f, .Z=1.0f,   .tX=0.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .tX=1.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .tX=1.0f, .tY=0.0f,   .R=0.2f, .G=0.2f, .B=1.0f, .A=1.0f },
+		
+		//Left Face (Orange)
+		{ .X=0.0f, .Y=1.0f, .Z=1.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=1.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=0.6f, .B=0.0f, .A=1.0f },
+		
+		//Bottom Face (Yellow)
+		{ .X=0.0f, .Y=0.0f, .Z=0.0f,   .tX=0.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=1.0f,   .tX=1.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+		{ .X=0.0f, .Y=0.0f, .Z=1.0f,   .tX=0.0f, .tY=1.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+		{ .X=1.0f, .Y=0.0f, .Z=0.0f,   .tX=1.0f, .tY=0.0f,   .R=1.0f, .G=1.0f, .B=0.0f, .A=1.0f },
+	};
+	app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, ArrayCount(cubeVertices), &cubeVertices[0], false);
+	Assert(app->cubeBuffer.error == Result_Success);
+	
 	v2i gradientSize = NewV2i(64, 64);
 	Color32* gradientPixels = AllocArray(Color32, scratch, (uxx)(gradientSize.Width * gradientSize.Height));
 	for (i32 pixelY = 0; pixelY < gradientSize.Height; pixelY++)
@@ -45,14 +98,13 @@ void InitSokol()
 	Assert(app->gradientTexture.error == Result_Success);
 	
 	InitCompiledShader(&app->main2dShader, stdHeap, main2d); Assert(app->main2dShader.error == Result_Success);
+	InitCompiledShader(&app->main3dShader, stdHeap, main3d); Assert(app->main3dShader.error == Result_Success);
 	
 	ScratchEnd(scratch);
 }
 
-void DrawRectangle(Shader* shader, v2 topLeft, v2 size, Color32 color)
+void DrawRectangle(v2 topLeft, v2 size, Color32 color)
 {
-	NotNull(shader);
-	
 	mat4 worldMat = Mat4_Identity;
 	TransformMat4(&worldMat, MakeScaleXYZMat4(size.Width, size.Height, 1.0f));
 	TransformMat4(&worldMat, MakeTranslateXYZMat4(topLeft.X, topLeft.Y, 0.0f));
@@ -60,5 +112,17 @@ void DrawRectangle(Shader* shader, v2 topLeft, v2 size, Color32 color)
 	SetTintColor(color);
 	
 	BindVertBuffer(&app->squareBuffer);
+	DrawVertices();
+}
+
+void DrawBox(box boundingBox, Color32 color)
+{
+	mat4 worldMat = Mat4_Identity;
+	TransformMat4(&worldMat, MakeScaleMat4(boundingBox.Size));
+	TransformMat4(&worldMat, MakeTranslateMat4(boundingBox.BottomLeftBack));
+	SetWorldMat(worldMat);
+	SetTintColor(color);
+	
+	BindVertBuffer(&app->cubeBuffer);
 	DrawVertices();
 }
