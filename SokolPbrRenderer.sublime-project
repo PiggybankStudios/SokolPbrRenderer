@@ -107,7 +107,16 @@
 		"custom_functions":
 		[
 			"AppApi APP_GET_API_DEF()",
+			"Circle NewCircle(r32 x, r32 y, r32 radius)",
+			"Circle NewCircleV(v2 center, r32 radius)",
+			"GeneratedMesh GenerateVertsForSphere(Arena* arena, Sphere sphere, uxx numRings, uxx numSegments, Color32 color)",
+			"Quad2D NewQuad2D(v2 vert0, v2 vert1, v2 vert2, v2 vert3)",
+			"Quad3D NewQuad3D(v3 vert0, v3 vert1, v3 vert2, v3 vert3)",
+			"Sphere NewSphere(r32 x, r32 y, r32 z, r32 radius)",
+			"Sphere NewSphereV(v3 center, r32 radius)",
 			"Texture LoadTexture(Arena* arena, const char* path)",
+			"Triangle2D NewTriangle2D(v2 vert0, v2 vert1, v2 vert2)",
+			"Triangle3D NewTriangle3D(v3 vert0, v3 vert1, v3 vert2)",
 			"bool APP_UPDATE_DEF(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)",
 			"sg_backend GetSokolBackend()",
 			"sg_swapchain GET_SOKOL_SWAPCHAIN_DEF()",
@@ -122,6 +131,8 @@
 		[
 			"AppGetApi_f",
 			"AppInit_f",
+			"Circle",
+			"GeneratedMesh",
 			"GetWindowSize_f",
 			"PlatformApi",
 		],

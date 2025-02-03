@@ -195,8 +195,9 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		}
 		#endif
 		
-		DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
+		// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
 		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
+		DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
 	}
 	EndFrame();
 	
