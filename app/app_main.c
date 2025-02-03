@@ -159,46 +159,30 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	
 	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
 	{
-		BindShader(&app->main3dShader);
-		BindTexture(&app->occlusionTexture);
+		// BindShader(&app->main3dShader);
+		BindShader(&app->pbrShader);
+		BindTextureAtIndex(&app->albedoTexture, 0);
+		BindTextureAtIndex(&app->normalTexture, 1);
+		BindTextureAtIndex(&app->metallicTexture, 2);
+		BindTextureAtIndex(&app->roughnessTexture, 3);
+		BindTextureAtIndex(&app->occlusionTexture, 4);
 		SetSourceRec(NewV4(0, 0, (r32)app->occlusionTexture.Width, (r32)app->occlusionTexture.Height));
-		
-		#if 0
-		mat4 projMat = Mat4_Identity;
-		TransformMat4(&projMat, MakeScaleXYZMat4(1.0f/(windowSize.Width/2.0f), 1.0f/(windowSize.Height/2.0f), 1.0f));
-		TransformMat4(&projMat, MakeTranslateXYZMat4(-1.0f, -1.0f, 0.0f));
-		TransformMat4(&projMat, MakeScaleYMat4(-1.0f));
-		SetProjectionMat(projMat);
-		SetViewMat(Mat4_Identity);
-		SetWorldMat(Mat4_Identity);
-		// SetUniformByNameV2(StrLit("main2d_texture0_size"), ToV2Fromi(app->gradientTexture.size));
-		#endif
+		SetShaderUniformByNameV4(&app->pbrShader, StrLit("lightPos"), ToV4From3(app->lightPos, 1.0f));
+		SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
 		
 		#if defined(SOKOL_GLCORE)
-		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(30), windowSize.Width/windowSize.Height, 0.05f, 100);
+		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), windowSize.Width/windowSize.Height, 0.05f, 100);
 		#else
-		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(30), windowSize.Width/windowSize.Height, 0.05f, 100);
+		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), windowSize.Width/windowSize.Height, 0.05f, 100);
 		#endif
 		SetProjectionMat(projMat);
 		mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);
 		SetViewMat(viewMat);
 		
-		#if 0
-		v2 tileSize = NewV2(0.1f, 0.1f); //ToV2Fromi(app->gradientTexture.size); //NewV2(48, 27);
-		i32 numColumns = 100; //CeilR32i(windowSize.Width / tileSize.Width);
-		i32 numRows = 100; //CeilR32i(windowSize.Height / tileSize.Height);
-		for (i32 yIndex = 0; yIndex < numRows; yIndex++)
-		{
-			for (i32 xIndex = 0; xIndex < numColumns; xIndex++)
-			{
-				DrawRectangle(NewV2(tileSize.Width * xIndex, tileSize.Height * yIndex), tileSize, White);
-			}
-		}
-		#endif
-		
 		// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
 		DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
 		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
+		DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
 	}
 	EndFrame();
 	

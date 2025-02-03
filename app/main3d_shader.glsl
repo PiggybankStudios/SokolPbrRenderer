@@ -27,7 +27,6 @@ out vec2 fragSampleCoord;
 void main()
 {
 	gl_Position = projection * (view * (world * vec4(position, 1.0f)));
-	// gl_Position = ((vec4(position, 1.0f) * world) * view) * projection;
 	fragColor = color0;
 	fragSampleCoord = vec2(
 		((texCoord0.x * sourceRec0.z) + sourceRec0.x) / main3d_texture0_size.x,

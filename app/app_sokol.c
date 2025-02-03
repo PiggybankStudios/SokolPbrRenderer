@@ -8,6 +8,7 @@ Description:
 
 #include "main2d_shader.glsl.h"
 #include "main3d_shader.glsl.h"
+#include "pbr_shader.glsl.h"
 
 void InitSokol()
 {
@@ -28,8 +29,12 @@ void InitSokol()
 	app->squareBuffer = InitVertBuffer2D(stdHeap, StrLit("square"), VertBufferUsage_Static, ArrayCount(squareVertices), &squareVertices[0], false);
 	Assert(app->squareBuffer.error == Result_Success);
 	
+	#if 1
+	GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);
+	#else
 	Color32 cubeSideColors[BOX_NUM_FACES] = { MonokaiWhite, MonokaiRed, MonokaiBlue, MonokaiOrange, MonokaiGreen, MonokaiYellow };
 	GeneratedMesh cubeMesh = GenerateVertsForBoxEx(scratch, NewBoxV(V3_Zero, V3_One), &cubeSideColors[0]);
+	#endif
 	Vertex3D* cubeVertices = AllocArray(Vertex3D, scratch, cubeMesh.numIndices);
 	for (uxx iIndex = 0; iIndex < cubeMesh.numIndices; iIndex++)
 	{
@@ -47,25 +52,24 @@ void InitSokol()
 	app->sphereBuffer = InitVertBuffer3D(stdHeap, StrLit("sphere"), VertBufferUsage_Static, sphereMesh.numIndices, sphereVertices, false);
 	Assert(app->sphereBuffer.error == Result_Success);
 	
-	v2i gradientSize = NewV2i(64, 64);
-	Color32* gradientPixels = AllocArray(Color32, scratch, (uxx)(gradientSize.Width * gradientSize.Height));
-	for (i32 pixelY = 0; pixelY < gradientSize.Height; pixelY++)
-	{
-		for (i32 pixelX = 0; pixelX < gradientSize.Width; pixelX++)
-		{
-			Color32* pixel = &gradientPixels[INDEX_FROM_COORD2D(pixelX, pixelY, gradientSize.Width, gradientSize.Height)];
-			pixel->r = ClampCastI32ToU8(RoundR32i(LerpR32(0, 255.0f, (r32)pixelX / (r32)gradientSize.Width)));
-			pixel->g = ClampCastI32ToU8(RoundR32i(LerpR32(0, 255.0f, (r32)pixelY / (r32)gradientSize.Height)));
-			pixel->b = pixel->r/2 + pixel->g/2;
-			pixel->a = 255;
-		}
-	}
-	
-	app->gradientTexture = InitTexture(stdHeap, StrLit("gradient"), gradientSize, gradientPixels, TextureFlag_IsRepeating);
-	Assert(app->gradientTexture.error == Result_Success);
-	
 	InitCompiledShader(&app->main2dShader, stdHeap, main2d); Assert(app->main2dShader.error == Result_Success);
 	InitCompiledShader(&app->main3dShader, stdHeap, main3d); Assert(app->main3dShader.error == Result_Success);
+	InitCompiledShader(&app->pbrShader, stdHeap, pbr); Assert(app->pbrShader.error == Result_Success);
+	
+	#if 0
+	PrintLine_D("pbrShader has %llu image%s", app->pbrShader.numImages, Plural(app->pbrShader.numImages, "s"));
+	for (uxx iIndex = 0; iIndex < app->pbrShader.numImages; iIndex++)
+	{
+		ShaderImage* image = &app->pbrShader.images[iIndex];
+		PrintLine_D("Image[%llu]: \"%.*s\" index %llu", iIndex, StrPrint(image->name), image->index);
+	}
+	PrintLine_D("pbrShader has %llu sampler%s", app->pbrShader.numSamplers, Plural(app->pbrShader.numSamplers, "s"));
+	for (uxx sIndex = 0; sIndex < app->pbrShader.numSamplers; sIndex++)
+	{
+		ShaderSampler* sampler = &app->pbrShader.samplers[sIndex];
+		PrintLine_D("Sampler[%llu]: \"%.*s\" index %llu", sIndex, StrPrint(sampler->name), sampler->index);
+	}
+	#endif
 	
 	ScratchEnd(scratch);
 }
@@ -77,7 +81,6 @@ void DrawRectangle(v2 topLeft, v2 size, Color32 color)
 	TransformMat4(&worldMat, MakeTranslateXYZMat4(topLeft.X, topLeft.Y, 0.0f));
 	SetWorldMat(worldMat);
 	SetTintColor(color);
-	
 	BindVertBuffer(&app->squareBuffer);
 	DrawVertices();
 }
@@ -89,7 +92,6 @@ void DrawBox(box boundingBox, Color32 color)
 	TransformMat4(&worldMat, MakeTranslateMat4(boundingBox.BottomLeftBack));
 	SetWorldMat(worldMat);
 	SetTintColor(color);
-	
 	BindVertBuffer(&app->cubeBuffer);
 	DrawVertices();
 }
@@ -101,7 +103,6 @@ void DrawSphere(Sphere sphere, Color32 color)
 	TransformMat4(&worldMat, MakeTranslateMat4(sphere.Center));
 	SetWorldMat(worldMat);
 	SetTintColor(color);
-	
 	BindVertBuffer(&app->sphereBuffer);
 	DrawVertices();
 }

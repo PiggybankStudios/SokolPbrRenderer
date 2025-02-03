@@ -16,12 +16,12 @@ struct AppData
 	sg_pass_action sokolPassAction;
 	Shader main2dShader;
 	Shader main3dShader;
+	Shader pbrShader;
 	
 	VertBuffer squareBuffer;
 	VertBuffer cubeBuffer;
 	VertBuffer sphereBuffer;
 	
-	Texture gradientTexture;
 	Texture albedoTexture;
 	Texture normalTexture;
 	Texture metallicTexture;
