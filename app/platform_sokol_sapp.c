@@ -62,9 +62,19 @@ GET_SOKOL_SWAPCHAIN_DEF(Plat_GetSokolSwapchain)
 }
 
 // +==============================+
-// |      Plat_GetWindowSize      |
+// |     Plat_SetMouseLocked      |
 // +==============================+
-GET_WINDOW_SIZE_DEF(Plat_GetWindowSize)
+// void Plat_SetMouseLocked(bool isMouseLocked)
+SET_MOUSE_LOCKED_DEF(Plat_SetMouseLocked)
 {
-	return NewV2i(sapp_width(), sapp_height());
+	NotNull(platformData);
+	NotNull(platformData->oldAppInput);
+	NotNull(platformData->currentAppInput);
+	if (platformData->currentAppInput->mouse.isLocked != isMouseLocked)
+	{
+		sapp_lock_mouse(isMouseLocked);
+		//Change the value in both old and current AppInput so the application immediately sees the value change in the AppInput it has a handle to
+		platformData->oldAppInput->mouse.isLocked = isMouseLocked;
+		platformData->currentAppInput->mouse.isLocked = isMouseLocked;
+	}
 }

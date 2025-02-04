@@ -19,6 +19,7 @@ struct PlatformData
 	void* appMemoryPntr;
 	
 	AppInput appInputs[2];
+	AppInput* oldAppInput;
 	AppInput* currentAppInput;
 };
 

@@ -21,9 +21,14 @@ struct AppInput
 {
 	u64 programTime; //num ms since start of program
 	u64 frameIndex;
+	
 	KeyboardState keyboard;
 	MouseState mouse;
 	//TODO: Add ControllerStates
+	
+	bool isFullscreen;
+	v2i screenSize;
+	// v2i windowSize; //TODO: Can we somehow ask sokol_sapp for the window size (include title bar and border)?
 };
 
 // +--------------------------------------------------------------+
@@ -32,14 +37,14 @@ struct AppInput
 #define GET_SOKOL_SWAPCHAIN_DEF(functionName) sg_swapchain functionName()
 typedef GET_SOKOL_SWAPCHAIN_DEF(GetSokolSwapchain_f);
 
-#define GET_WINDOW_SIZE_DEF(functionName) v2i functionName()
-typedef GET_WINDOW_SIZE_DEF(GetWindowSize_f);
+#define SET_MOUSE_LOCKED_DEF(functionName) void functionName(bool isMouseLocked)
+typedef SET_MOUSE_LOCKED_DEF(SetMouseLocked_f);
 
 typedef struct PlatformApi PlatformApi;
 struct PlatformApi
 {
 	GetSokolSwapchain_f* GetSokolSwapchain;
-	GetWindowSize_f* GetWindowSize;
+	SetMouseLocked_f* SetMouseLocked;
 };
 
 // +--------------------------------------------------------------+

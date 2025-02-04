@@ -152,12 +152,43 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	bool shouldContinueRunning = true;
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr, appInput);
 	
-	v2 windowSize = ToV2Fromi(platform->GetWindowSize());
+	if (IsMouseBtnPressed(&appIn->mouse, MouseBtn_Left) && appIn->mouse.isOverWindow && !appIn->mouse.isLocked)
+	{
+		platform->SetMouseLocked(true);
+	}
+	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Escape) && appIn->mouse.isLocked)
+	{
+		platform->SetMouseLocked(false);
+	}
 	
-	r32 angle = IsKeyboardKeyDown(&appIn->keyboard, Key_Space) ? OscillateBy(appIn->programTime, 0, TwoPi32, 5000, 0) : 0;
-	r32 height = IsMouseBtnDown(&appIn->mouse, MouseBtn_Left) ? OscillateBy(appIn->programTime, -1.0f, 1.0f, 13000, 0) : 0.0f;
-	app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
-	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+	if (appIn->mouse.isLocked)
+	{
+		r32 cameraHoriRot = AtanR32(app->cameraLookDir.Z, app->cameraLookDir.X);
+		r32 cameraVertRot = AtanR32(app->cameraLookDir.Y, Length(NewV2(app->cameraLookDir.X, app->cameraLookDir.Z)));
+		cameraHoriRot = AngleFixR32(cameraHoriRot - appIn->mouse.lockedPosDelta.X / 500.0f);
+		cameraVertRot = ClampR32(cameraVertRot - appIn->mouse.lockedPosDelta.Y / 500.0f, -HalfPi32+0.05f, HalfPi32-0.05f);
+		r32 horizontalRadius = CosR32(cameraVertRot);
+		app->cameraLookDir = NewV3(CosR32(cameraHoriRot) * horizontalRadius, SinR32(cameraVertRot), SinR32(cameraHoriRot) * horizontalRadius);
+	}
+	#if 0
+	else
+	{
+		r32 angle = OscillateBy(appIn->programTime, 0, TwoPi32, 5000, 0);
+		r32 height = OscillateBy(appIn->programTime, -1.0f, 1.0f, 13000, 0);
+		app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
+		app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+	}
+	#endif
+	
+	v3 horizontalForwardVec = Normalize(NewV3(app->cameraLookDir.X, 0.0f, app->cameraLookDir.Z));
+	v3 horizontalRightVec = Normalize(NewV3(app->cameraLookDir.Z, 0.0f, -app->cameraLookDir.X));
+	const r32 moveSpeed = IsKeyboardKeyDown(&appIn->keyboard, Key_Shift) ? 0.08f : 0.02f;
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_W)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, moveSpeed)); }
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_A)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, -moveSpeed)); }
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_S)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, -moveSpeed)); }
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_D)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, moveSpeed)); }
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_E)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Up, moveSpeed)); }
+	if (IsKeyboardKeyDown(&appIn->keyboard, Key_Q)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Down, moveSpeed)); }
 	
 	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
 	{
@@ -173,9 +204,9 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
 		
 		#if defined(SOKOL_GLCORE)
-		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), windowSize.Width/windowSize.Height, 0.05f, 100);
+		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
 		#else
-		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), windowSize.Width/windowSize.Height, 0.05f, 100);
+		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
 		#endif
 		SetProjectionMat(projMat);
 		mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);

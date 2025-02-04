@@ -77,6 +77,7 @@ void PlatSappInit(void)
 	InitMouseState(&platformData->appInputs[0].mouse);
 	InitMouseState(&platformData->appInputs[1].mouse);
 	platformData->currentAppInput = &platformData->appInputs[0];
+	platformData->oldAppInput = &platformData->appInputs[1];
 	
 	platformInfo = AllocType(PlatformInfo, stdHeap);
 	NotNull(platformInfo);
@@ -87,7 +88,7 @@ void PlatSappInit(void)
 	NotNull(platform);
 	ClearPointer(platform);
 	platform->GetSokolSwapchain = Plat_GetSokolSwapchain;
-	platform->GetWindowSize = Plat_GetWindowSize;
+	platform->SetMouseLocked = Plat_SetMouseLocked;
 	
 	#if BUILD_INTO_SINGLE_UNIT
 	{
@@ -143,7 +144,8 @@ void PlatSappEvent(const sapp_event* event)
 			event,
 			platformData->currentAppInput->programTime, //TODO: Calculate a more accurate programTime to pass here!
 			&platformData->currentAppInput->keyboard,
-			&platformData->currentAppInput->mouse
+			&platformData->currentAppInput->mouse,
+			sapp_mouse_locked()
 		);
 	}
 	
@@ -180,8 +182,12 @@ void PlatSappFrame(void)
 	AppInput* newAppInput = (platformData->currentAppInput == &platformData->appInputs[0]) ? &platformData->appInputs[1] : &platformData->appInputs[0];
 	MyMemCopy(newAppInput, oldAppInput, sizeof(AppInput));
 	RefreshKeyboardState(&newAppInput->keyboard);
+	RefreshMouseState(&newAppInput->mouse, sapp_mouse_locked(), NewV2(sapp_widthf()/2.0f, sapp_heightf()/2.0f));
 	IncrementU64(newAppInput->frameIndex);
 	IncrementU64By(newAppInput->programTime, 16); //TODO: Replace this hardcoded increment!
+	newAppInput->screenSize = NewV2i(sapp_width(), sapp_height());
+	newAppInput->isFullscreen = sapp_is_fullscreen();
+	platformData->oldAppInput = oldAppInput;
 	platformData->currentAppInput = newAppInput;
 	
 	bool shouldContinueRunning = platformData->appApi.AppUpdate(platformInfo, platform, platformData->appMemoryPntr, oldAppInput);
