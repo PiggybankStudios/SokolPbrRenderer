@@ -18,6 +18,7 @@ Description:
 #include "misc/misc_all.h"
 #include "mem/mem_all.h"
 #include "struct/struct_all.h"
+#include "input/input_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
@@ -35,28 +36,23 @@ Description:
 // |                         Header Files                         |
 // +--------------------------------------------------------------+
 #include "platform_interface.h"
+#include "platform_main.h"
 
 #if BUILD_INTO_SINGLE_UNIT
 EXPORT_FUNC(AppGetApi) APP_GET_API_DEF(AppGetApi);
 #endif
 
 // +--------------------------------------------------------------+
-// |                           Globals                            |
+// |                       Platform Globals                       |
 // +--------------------------------------------------------------+
-Arena stdHeap_struct = ZEROED;
-AppApi appApi = ZEROED;
-#if !BUILD_INTO_SINGLE_UNIT
-OsDll appDll = ZEROED;
-#endif
-void* appMemoryPntr = nullptr;
-
+PlatformData* platformData = nullptr;
 //These globals are shared between app and platform when BUILD_INTO_SINGLE_UNIT
 Arena* stdHeap = nullptr;
 PlatformInfo* platformInfo = nullptr;
 PlatformApi* platform = nullptr;
 
 // +--------------------------------------------------------------+
-// |                         Source Files                         |
+// |                    Platform Source Files                     |
 // +--------------------------------------------------------------+
 #include "platform_sokol_sapp.c"
 
@@ -65,11 +61,22 @@ PlatformApi* platform = nullptr;
 // +--------------------------------------------------------------+
 void PlatSappInit(void)
 {
-	InitArenaStdHeap(&stdHeap_struct);
-	stdHeap = &stdHeap_struct;
+	Arena stdHeapLocal = ZEROED;
+	InitArenaStdHeap(&stdHeapLocal);
+	platformData = AllocType(PlatformData, &stdHeapLocal);
+	NotNull(platformData);
+	ClearPointer(platformData);
+	MyMemCopy(&platformData->stdHeap, &stdHeapLocal, sizeof(Arena));
+	stdHeap = &platformData->stdHeap;
 	InitScratchArenasVirtual(Gigabytes(4));
 	
 	ScratchBegin(loadScratch);
+	
+	InitKeyboardState(&platformData->appInputs[0].keyboard);
+	InitKeyboardState(&platformData->appInputs[1].keyboard);
+	InitMouseState(&platformData->appInputs[0].mouse);
+	InitMouseState(&platformData->appInputs[1].mouse);
+	platformData->currentAppInput = &platformData->appInputs[0];
 	
 	platformInfo = AllocType(PlatformInfo, stdHeap);
 	NotNull(platformInfo);
@@ -85,7 +92,7 @@ void PlatSappInit(void)
 	#if BUILD_INTO_SINGLE_UNIT
 	{
 		WriteLine_N("Compiled as single unit!");
-		appApi = AppGetApi();
+		platformData->appApi = AppGetApi();
 	}
 	#else
 	{
@@ -102,9 +109,9 @@ void PlatSappInit(void)
 		
 		AppGetApi_f* appGetApi = (AppGetApi_f*)OsFindDllFunc(&appDll, StrLit("AppGetApi"));
 		NotNull(appGetApi);
-		appApi = appGetApi();
-		NotNull(appApi.AppInit);
-		NotNull(appApi.AppUpdate);
+		platformData->appApi = appGetApi();
+		NotNull(platformData->appApi.AppInit);
+		NotNull(platformData->appApi.AppUpdate);
 	}
 	#endif
 	
@@ -115,8 +122,8 @@ void PlatSappInit(void)
 		.logger.func = SokolLogCallback,
 	});
 	
-	appMemoryPntr = appApi.AppInit(platformInfo, platform);
-	NotNull(appMemoryPntr);
+	platformData->appMemoryPntr = platformData->appApi.AppInit(platformInfo, platform);
+	NotNull(platformData->appMemoryPntr);
 	
 	ScratchEnd(loadScratch);
 }
@@ -128,32 +135,39 @@ void PlatSappCleanup(void)
 
 void PlatSappEvent(const sapp_event* event)
 {
-	switch (event->type)
+	bool handledEvent = false;
+	
+	if (platformData->currentAppInput != nullptr)
 	{
-		case SAPP_EVENTTYPE_KEY_DOWN:          WriteLine_D("Event: KEY_DOWN");          break;
-		case SAPP_EVENTTYPE_KEY_UP:            WriteLine_D("Event: KEY_UP");            break;
-		case SAPP_EVENTTYPE_CHAR:              WriteLine_D("Event: CHAR");              break;
-		case SAPP_EVENTTYPE_MOUSE_DOWN:        WriteLine_D("Event: MOUSE_DOWN");        break;
-		case SAPP_EVENTTYPE_MOUSE_UP:          WriteLine_D("Event: MOUSE_UP");          break;
-		case SAPP_EVENTTYPE_MOUSE_SCROLL:      WriteLine_D("Event: MOUSE_SCROLL");      break;
-		case SAPP_EVENTTYPE_MOUSE_MOVE:        /*WriteLine_D("Event: MOUSE_MOVE");*/    break;
-		case SAPP_EVENTTYPE_MOUSE_ENTER:       /*WriteLine_D("Event: MOUSE_ENTER");*/   break;
-		case SAPP_EVENTTYPE_MOUSE_LEAVE:       /*WriteLine_D("Event: MOUSE_LEAVE");*/   break;
-		case SAPP_EVENTTYPE_TOUCHES_BEGAN:     WriteLine_D("Event: TOUCHES_BEGAN");     break;
-		case SAPP_EVENTTYPE_TOUCHES_MOVED:     WriteLine_D("Event: TOUCHES_MOVED");     break;
-		case SAPP_EVENTTYPE_TOUCHES_ENDED:     WriteLine_D("Event: TOUCHES_ENDED");     break;
-		case SAPP_EVENTTYPE_TOUCHES_CANCELLED: WriteLine_D("Event: TOUCHES_CANCELLED"); break;
-		case SAPP_EVENTTYPE_RESIZED:           PrintLine_D("Event: RESIZED %dx%d / %dx%d", event->window_width, event->window_height, event->framebuffer_width, event->framebuffer_height); break;
-		case SAPP_EVENTTYPE_ICONIFIED:         WriteLine_D("Event: ICONIFIED");         break;
-		case SAPP_EVENTTYPE_RESTORED:          WriteLine_D("Event: RESTORED");          break;
-		case SAPP_EVENTTYPE_FOCUSED:           WriteLine_D("Event: FOCUSED");           break;
-		case SAPP_EVENTTYPE_UNFOCUSED:         WriteLine_D("Event: UNFOCUSED");         break;
-		case SAPP_EVENTTYPE_SUSPENDED:         WriteLine_D("Event: SUSPENDED");         break;
-		case SAPP_EVENTTYPE_RESUMED:           WriteLine_D("Event: RESUMED");           break;
-		case SAPP_EVENTTYPE_QUIT_REQUESTED:    WriteLine_D("Event: QUIT_REQUESTED");    break;
-		case SAPP_EVENTTYPE_CLIPBOARD_PASTED:  WriteLine_D("Event: CLIPBOARD_PASTED");  break;
-		case SAPP_EVENTTYPE_FILES_DROPPED:     WriteLine_D("Event: FILES_DROPPED");     break;
-		default: PrintLine_D("Event: UNKNOWN(%d)", event->type); break;
+		handledEvent = HandleSokolKeyboardAndMouseEvents(
+			event,
+			platformData->currentAppInput->programTime, //TODO: Calculate a more accurate programTime to pass here!
+			&platformData->currentAppInput->keyboard,
+			&platformData->currentAppInput->mouse
+		);
+	}
+	
+	if (!handledEvent)
+	{
+		switch (event->type)
+		{
+			case SAPP_EVENTTYPE_CHAR:              /*WriteLine_D("Event: CHAR");*/          break;
+			case SAPP_EVENTTYPE_TOUCHES_BEGAN:     WriteLine_D("Event: TOUCHES_BEGAN");     break;
+			case SAPP_EVENTTYPE_TOUCHES_MOVED:     WriteLine_D("Event: TOUCHES_MOVED");     break;
+			case SAPP_EVENTTYPE_TOUCHES_ENDED:     WriteLine_D("Event: TOUCHES_ENDED");     break;
+			case SAPP_EVENTTYPE_TOUCHES_CANCELLED: WriteLine_D("Event: TOUCHES_CANCELLED"); break;
+			case SAPP_EVENTTYPE_RESIZED:           PrintLine_D("Event: RESIZED %dx%d / %dx%d", event->window_width, event->window_height, event->framebuffer_width, event->framebuffer_height); break;
+			case SAPP_EVENTTYPE_ICONIFIED:         WriteLine_D("Event: ICONIFIED");         break;
+			case SAPP_EVENTTYPE_RESTORED:          WriteLine_D("Event: RESTORED");          break;
+			case SAPP_EVENTTYPE_FOCUSED:           WriteLine_D("Event: FOCUSED");           break;
+			case SAPP_EVENTTYPE_UNFOCUSED:         WriteLine_D("Event: UNFOCUSED");         break;
+			case SAPP_EVENTTYPE_SUSPENDED:         WriteLine_D("Event: SUSPENDED");         break;
+			case SAPP_EVENTTYPE_RESUMED:           WriteLine_D("Event: RESUMED");           break;
+			case SAPP_EVENTTYPE_QUIT_REQUESTED:    WriteLine_D("Event: QUIT_REQUESTED");    break;
+			case SAPP_EVENTTYPE_CLIPBOARD_PASTED:  WriteLine_D("Event: CLIPBOARD_PASTED");  break;
+			case SAPP_EVENTTYPE_FILES_DROPPED:     WriteLine_D("Event: FILES_DROPPED");     break;
+			default: PrintLine_D("Event: UNKNOWN(%d)", event->type); break;
+		}
 	}
 }
 
@@ -161,7 +175,16 @@ void PlatSappFrame(void)
 {
 	//TODO: Check for dll changes, reload it!
 	
-	bool shouldContinueRunning = appApi.AppUpdate(platformInfo, platform, appMemoryPntr);
+	//Swap which appInput is being written to and pass the static version to the application
+	AppInput* oldAppInput = platformData->currentAppInput;
+	AppInput* newAppInput = (platformData->currentAppInput == &platformData->appInputs[0]) ? &platformData->appInputs[1] : &platformData->appInputs[0];
+	MyMemCopy(newAppInput, oldAppInput, sizeof(AppInput));
+	RefreshKeyboardState(&newAppInput->keyboard);
+	IncrementU64(newAppInput->frameIndex);
+	IncrementU64By(newAppInput->programTime, 16); //TODO: Replace this hardcoded increment!
+	platformData->currentAppInput = newAppInput;
+	
+	bool shouldContinueRunning = platformData->appApi.AppUpdate(platformInfo, platform, platformData->appMemoryPntr, oldAppInput);
 	if (!shouldContinueRunning) { sapp_quit(); }
 }
 

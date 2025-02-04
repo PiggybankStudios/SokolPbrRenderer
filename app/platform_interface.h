@@ -16,6 +16,16 @@ struct PlatformInfo
 	Arena* platformStdHeap;
 };
 
+typedef struct AppInput AppInput;
+struct AppInput
+{
+	u64 programTime; //num ms since start of program
+	u64 frameIndex;
+	KeyboardState keyboard;
+	MouseState mouse;
+	//TODO: Add ControllerStates
+};
+
 // +--------------------------------------------------------------+
 // |                         Platform API                         |
 // +--------------------------------------------------------------+
@@ -38,7 +48,7 @@ struct PlatformApi
 #define APP_INIT_DEF(functionName) void* functionName(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi)
 typedef APP_INIT_DEF(AppInit_f);
 
-#define APP_UPDATE_DEF(functionName) bool functionName(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)
+#define APP_UPDATE_DEF(functionName) bool functionName(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr, AppInput* appInput)
 typedef APP_UPDATE_DEF(AppUpdate_f);
 
 typedef struct AppApi AppApi;

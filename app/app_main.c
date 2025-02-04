@@ -18,6 +18,7 @@ Description:
 #include "misc/misc_all.h"
 #include "mem/mem_all.h"
 #include "struct/struct_all.h"
+#include "input/input_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
@@ -31,6 +32,7 @@ Description:
 // |                           Globals                            |
 // +--------------------------------------------------------------+
 static AppData* app = nullptr;
+static AppInput* appIn = nullptr;
 
 #if !BUILD_INTO_SINGLE_UNIT //NOTE: The platform layer already has these globals
 static PlatformInfo* platformInfo = nullptr;
@@ -67,7 +69,7 @@ BOOL WINAPI DllMain(
 }
 #endif //(TARGET_IS_WINDOWS && !BUILD_INTO_SINGLE_UNIT)
 
-void UpdateDllGlobals(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)
+void UpdateDllGlobals(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr, AppInput* appInput)
 {
 	#if !BUILD_INTO_SINGLE_UNIT
 	platformInfo = inPlatformInfo;
@@ -78,6 +80,7 @@ void UpdateDllGlobals(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, 
 	UNUSED(inPlatformInfo);
 	#endif
 	app = (AppData*)memoryPntr;
+	appIn = appInput;
 }
 
 Texture LoadTexture(Arena* arena, const char* path)
@@ -109,7 +112,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	AppData* appData = AllocType(AppData, inPlatformInfo->platformStdHeap);
 	ClearPointer(appData);
-	UpdateDllGlobals(inPlatformInfo, inPlatformApi, (void*)appData);
+	UpdateDllGlobals(inPlatformInfo, inPlatformApi, (void*)appData, nullptr);
 	
 	InitSokol();
 	
@@ -140,20 +143,19 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 // +==============================+
 // |          AppUpdate           |
 // +==============================+
-// bool AppUpdate(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)
+// bool AppUpdate(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr, AppInput* appInput)
 EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 {
 	ScratchBegin(scratch);
 	ScratchBegin1(scratch2, scratch);
 	ScratchBegin2(scratch3, scratch, scratch2);
 	bool shouldContinueRunning = true;
-	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr);
-	IncrementU64By(app->frameIndex, 16);
+	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr, appInput);
 	
 	v2 windowSize = ToV2Fromi(platform->GetWindowSize());
 	
-	r32 angle = OscillateBy(app->frameIndex, 0, TwoPi32, 5000, 0);
-	r32 height = OscillateBy(app->frameIndex, -1.0f, 1.0f, 13000, 0);
+	r32 angle = IsKeyboardKeyDown(&appIn->keyboard, Key_Space) ? OscillateBy(appIn->programTime, 0, TwoPi32, 5000, 0) : 0;
+	r32 height = IsMouseBtnDown(&appIn->mouse, MouseBtn_Left) ? OscillateBy(appIn->programTime, -1.0f, 1.0f, 13000, 0) : 0.0f;
 	app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
 	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
 	

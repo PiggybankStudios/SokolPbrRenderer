@@ -11,7 +11,6 @@ typedef struct AppData AppData;
 struct AppData
 {
 	bool initialized;
-	u64 frameIndex;
 	
 	sg_pass_action sokolPassAction;
 	Shader main2dShader;

@@ -144,7 +144,7 @@ void main()
 	// vec4 lightMult = vec4(1.0f - lightDistance/3.5f, 1.0f - lightDistance/4.0f, 1.0f - lightDistance/6.0f, 1.0f);
 	// frag_color = fragColor * albedo * tint * lightMult;
 	
-	// float lightDot = dot(fragNormal + surfaceNorma, normalize(lightPos.xyz - fragPosition));
+	// float lightDot = dot(normalize(fragNormal + surfaceNormal), lightVec);
 	// vec4 lightMult = vec4(lightDot, lightDot, lightDot, 1.0f);
 	
 	vec4 addedMult = vec4(vec3(normalDistributionValue + geometryValue), 1.0f);
