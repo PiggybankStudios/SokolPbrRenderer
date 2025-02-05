@@ -21,7 +21,7 @@ Description:
 // Build the WASM binary for operating as a webpage
 #define BUILD_WEB     0
 // Runs the sokol-shdc.exe on all .glsl files in the source directory to produce .glsl.h and .glsl.c files and then compiles the .glsl.c files to .obj
-#define BUILD_SHADERS 1
+#define BUILD_SHADERS 0
 
 // Controls whether we are making a build that we want to run with a Debugger.
 // This often sacrifices runtime speed or code size for extra debug information.
@@ -80,5 +80,13 @@ Description:
 #define PROJECT_FOLDER_NAME_STR    STRINGIFY_DEFINE(PROJECT_FOLDER_NAME)
 #define PROJECT_DLL_NAME_STR       STRINGIFY_DEFINE(PROJECT_DLL_NAME)
 #define PROJECT_EXE_NAME_STR       STRINGIFY_DEFINE(PROJECT_EXE_NAME)
+
+//These are not going to change for this application but they still live in build_config.h because many PigCore files include this file
+#define BUILD_WITH_RAYLIB    0
+#define BUILD_WITH_BOX2D     0
+#define BUILD_WITH_SOKOL_GFX 1
+#define BUILD_WITH_SOKOL_APP 1
+#define BUILD_WITH_SDL       0
+#define BUILD_WITH_OPENVR    0
 
 #endif //  _BUILD_CONFIG_H

@@ -134,7 +134,7 @@ if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_release" /LIBPATH:"%core%\third_party\_lib_release"
 )
 
-set pig_core_defines=/DBUILD_WITH_SOKOL=1 /DPIG_CORE_DLL_INCLUDE_GFX_SYSTEM_GLOBAL=1
+set pig_core_defines=/DPIG_CORE_DLL_INCLUDE_GFX_SYSTEM_GLOBAL=1
 
 if "%DUMP_PREPROCESSOR%"=="1" (
 	REM /P = Output the result of the preprocessor to {file_name}.i (disables the actual compilation)

@@ -32,6 +32,8 @@ Description:
 #pragma clang diagnostic pop
 #endif
 
+#include "misc/misc_sokol_app_helpers.c"
+
 // +--------------------------------------------------------------+
 // |                         Header Files                         |
 // +--------------------------------------------------------------+
@@ -54,7 +56,7 @@ PlatformApi* platform = nullptr;
 // +--------------------------------------------------------------+
 // |                    Platform Source Files                     |
 // +--------------------------------------------------------------+
-#include "platform_sokol_sapp.c"
+#include "platform_api.c"
 
 // +--------------------------------------------------------------+
 // |                       Main Entry Point                       |
@@ -119,9 +121,27 @@ void PlatSappInit(void)
 	//TODO: Should we do an early call into app dll to get options?
 	
 	InitSokolGraphics((sg_desc){
-		.environment = CreateSokolEnvironment(),
+		// .buffer_pool_size = ?; //int
+		// .image_pool_size = ?; //int
+		// .sampler_pool_size = ?; //int
+		// .shader_pool_size = ?; //int
+		// .pipeline_pool_size = ?; //int
+		// .attachments_pool_size = ?; //int
+		// .uniform_buffer_size = ?; //int
+		// .max_commit_listeners = ?; //int
+		// .disable_validation = ?; //bool    // disable validation layer even in debug mode, useful for tests
+		// .d3d11_shader_debugging = ?; //bool    // if true, HLSL shaders are compiled with D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION
+		// .mtl_force_managed_storage_mode = ?; //bool // for debugging: use Metal managed storage mode for resources even with UMA
+		// .mtl_use_command_buffer_with_retained_references = ?; //bool    // Metal: use a managed MTLCommandBuffer which ref-counts used resources
+		// .wgpu_disable_bindgroups_cache = ?; //bool  // set to true to disable the WebGPU backend BindGroup cache
+		// .wgpu_bindgroups_cache_size = ?; //int      // number of slots in the WebGPU bindgroup cache (must be 2^N)
+		// .allocator = ?; //sg_allocator TODO: Fill this out!
+		.environment = CreateSokolAppEnvironment(),
 		.logger.func = SokolLogCallback,
+		
 	});
+	
+	InitGfxSystem(stdHeap, &gfx);
 	
 	platformData->appMemoryPntr = platformData->appApi.AppInit(platformInfo, platform);
 	NotNull(platformData->appMemoryPntr);

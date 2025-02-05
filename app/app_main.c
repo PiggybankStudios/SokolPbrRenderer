@@ -27,6 +27,7 @@ Description:
 // +--------------------------------------------------------------+
 #include "platform_interface.h"
 #include "app_main.h"
+#include "app_shaders.h"
 
 // +--------------------------------------------------------------+
 // |                           Globals                            |
@@ -43,7 +44,7 @@ static Arena* stdHeap = nullptr;
 // +--------------------------------------------------------------+
 // |                         Source Files                         |
 // +--------------------------------------------------------------+
-#include "app_sokol.c"
+#include "app_helpers.c"
 
 // +==============================+
 // |           DllMain            |
@@ -114,9 +115,47 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	ClearPointer(appData);
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, (void*)appData, nullptr);
 	
-	InitSokol();
+	#if 1
+	GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);
+	#else
+	Color32 cubeSideColors[BOX_NUM_FACES] = { MonokaiWhite, MonokaiRed, MonokaiBlue, MonokaiOrange, MonokaiGreen, MonokaiYellow };
+	GeneratedMesh cubeMesh = GenerateVertsForBoxEx(scratch, NewBoxV(V3_Zero, V3_One), &cubeSideColors[0]);
+	#endif
+	Vertex3D* cubeVertices = AllocArray(Vertex3D, scratch, cubeMesh.numIndices);
+	for (uxx iIndex = 0; iIndex < cubeMesh.numIndices; iIndex++)
+	{
+		MyMemCopy(&cubeVertices[iIndex], &cubeMesh.vertices[cubeMesh.indices[iIndex]], sizeof(Vertex3D));
+	}
+	app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, cubeMesh.numIndices, cubeVertices, false);
+	Assert(app->cubeBuffer.error == Result_Success);
 	
-	// sphereBuffer; TODO:
+	GeneratedMesh sphereMesh = GenerateVertsForSphere(scratch, NewSphereV(V3_Zero, 1.0f), 12, 20, White);
+	Vertex3D* sphereVertices = AllocArray(Vertex3D, scratch, sphereMesh.numIndices);
+	for (uxx iIndex = 0; iIndex < sphereMesh.numIndices; iIndex++)
+	{
+		MyMemCopy(&sphereVertices[iIndex], &sphereMesh.vertices[sphereMesh.indices[iIndex]], sizeof(Vertex3D));
+	}
+	app->sphereBuffer = InitVertBuffer3D(stdHeap, StrLit("sphere"), VertBufferUsage_Static, sphereMesh.numIndices, sphereVertices, false);
+	Assert(app->sphereBuffer.error == Result_Success);
+	
+	InitCompiledShader(&app->main2dShader, stdHeap, main2d); Assert(app->main2dShader.error == Result_Success);
+	InitCompiledShader(&app->main3dShader, stdHeap, main3d); Assert(app->main3dShader.error == Result_Success);
+	InitCompiledShader(&app->pbrShader, stdHeap, pbr); Assert(app->pbrShader.error == Result_Success);
+	
+	#if 0
+	PrintLine_D("pbrShader has %llu image%s", app->pbrShader.numImages, Plural(app->pbrShader.numImages, "s"));
+	for (uxx iIndex = 0; iIndex < app->pbrShader.numImages; iIndex++)
+	{
+		ShaderImage* image = &app->pbrShader.images[iIndex];
+		PrintLine_D("Image[%llu]: \"%.*s\" index %llu", iIndex, StrPrint(image->name), image->index);
+	}
+	PrintLine_D("pbrShader has %llu sampler%s", app->pbrShader.numSamplers, Plural(app->pbrShader.numSamplers, "s"));
+	for (uxx sIndex = 0; sIndex < app->pbrShader.numSamplers; sIndex++)
+	{
+		ShaderSampler* sampler = &app->pbrShader.samplers[sIndex];
+		PrintLine_D("Sampler[%llu]: \"%.*s\" index %llu", sIndex, StrPrint(sampler->name), sampler->index);
+	}
+	#endif
 	
 	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
 	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
@@ -192,30 +231,52 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	
 	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
 	{
-		// BindShader(&app->main3dShader);
-		BindShader(&app->pbrShader);
-		BindTextureAtIndex(&app->albedoTexture, 0);
-		BindTextureAtIndex(&app->normalTexture, 1);
-		BindTextureAtIndex(&app->metallicTexture, 2);
-		BindTextureAtIndex(&app->roughnessTexture, 3);
-		BindTextureAtIndex(&app->occlusionTexture, 4);
-		SetSourceRec(NewV4(0, 0, (r32)app->occlusionTexture.Width, (r32)app->occlusionTexture.Height));
-		SetShaderUniformByNameV4(&app->pbrShader, StrLit("lightPos"), ToV4From3(app->lightPos, 1.0f));
-		SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
+		// +==============================+
+		// |         3D Rendering         |
+		// +==============================+
+		{
+			// BindShader(&app->main3dShader);
+			BindShader(&app->pbrShader);
+			BindTextureAtIndex(&app->albedoTexture, 0);
+			BindTextureAtIndex(&app->normalTexture, 1);
+			BindTextureAtIndex(&app->metallicTexture, 2);
+			BindTextureAtIndex(&app->roughnessTexture, 3);
+			BindTextureAtIndex(&app->occlusionTexture, 4);
+			SetSourceRec(NewRec(0, 0, (r32)app->occlusionTexture.Width, (r32)app->occlusionTexture.Height));
+			SetShaderUniformByNameV4(&app->pbrShader, StrLit("lightPos"), ToV4From3(app->lightPos, 1.0f));
+			SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
+			
+			#if defined(SOKOL_GLCORE)
+			mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
+			#else
+			mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
+			#endif
+			SetProjectionMat(projMat);
+			mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);
+			SetViewMat(viewMat);
+			
+			// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
+			DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
+			DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
+			DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
+		}
 		
-		#if defined(SOKOL_GLCORE)
-		mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
-		#else
-		mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
-		#endif
-		SetProjectionMat(projMat);
-		mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);
-		SetViewMat(viewMat);
-		
-		// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
-		DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
-		DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
-		DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
+		// +==============================+
+		// |         2D Rendering         |
+		// +==============================+
+		{
+			BindShader(&app->main2dShader);
+			ClearDepthBuffer(1.0f);
+			mat4 projMat = Mat4_Identity;
+			TransformMat4(&projMat, MakeScaleXYZMat4(1.0f/((r32)appIn->screenSize.Width/2.0f), 1.0f/((r32)appIn->screenSize.Height/2.0f), 1.0f));
+			TransformMat4(&projMat, MakeTranslateXYZMat4(-1.0f, -1.0f, 0.0f));
+			TransformMat4(&projMat, MakeScaleYMat4(-1.0f));
+			SetProjectionMat(projMat);
+			SetViewMat(Mat4_Identity);
+			SetDepth(1.0f);
+			
+			DrawRectangle(NewRec(10, 10, 200, 80), MonokaiPurple);
+		}
 	}
 	EndFrame();
 	
