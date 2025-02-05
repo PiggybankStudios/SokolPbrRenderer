@@ -104,11 +104,11 @@ void PlatSappInit(void)
 		#else
 		#error Current TARGET doesn't have an implementation for shared library suffix!
 		#endif
-		Result loadDllResult = OsLoadDll(dllPath, &appDll);
+		Result loadDllResult = OsLoadDll(dllPath, &platformData->appDll);
 		if (loadDllResult != Result_Success) { PrintLine_E("Failed to load \"%.*s\": %s", StrPrint(dllPath), GetResultStr(loadDllResult)); }
 		Assert(loadDllResult == Result_Success);
 		
-		AppGetApi_f* appGetApi = (AppGetApi_f*)OsFindDllFunc(&appDll, StrLit("AppGetApi"));
+		AppGetApi_f* appGetApi = (AppGetApi_f*)OsFindDllFunc(&platformData->appDll, StrLit("AppGetApi"));
 		NotNull(appGetApi);
 		platformData->appApi = appGetApi();
 		NotNull(platformData->appApi.AppInit);
