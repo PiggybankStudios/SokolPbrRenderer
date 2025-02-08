@@ -126,7 +126,8 @@ if "%DEBUG_BUILD%"=="1" (
 
 :: -incremental:no = Suppresses warning about doing a full link when it can't find the previous .exe result. We don't need this when doing unity builds
 :: /LIBPATH = Add a library search path
-set common_ld_flags=-incremental:no
+:: Gdi32.lib = Needed for os_font.h
+set common_ld_flags=-incremental:no Gdi32.lib
 
 if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_debug" /LIBPATH:"%core%\third_party\_lib_debug"

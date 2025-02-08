@@ -292,6 +292,10 @@
 			"MouseBtn_Scroll",
 			"MouseBtn_ScrollDown",
 			"MouseBtn_ScrollUp",
+			"Result_EmptyFile",
+			"Result_NoDeviceContext",
+			"Result_NoForegroundWindow",
+			"Result_NotFound",
 		],
 		"custom_functions":
 		[
@@ -327,6 +331,7 @@
 			"MouseBtn GetMouseBtnFromSokolMouseButton(sapp_mousebutton mouseButton)",
 			"Quad2D NewQuad2D(v2 vert0, v2 vert1, v2 vert2, v2 vert3)",
 			"Quad3D NewQuad3D(v3 vert0, v3 vert1, v3 vert2, v3 vert3)",
+			"Result OsReadPlatformFont(Arena* arena, Str8 fontName, i32 fontSize, bool bold, bool italic, Slice* fileContentsOut)",
 			"Sphere NewSphere(r32 x, r32 y, r32 z, r32 radius)",
 			"Sphere NewSphereV(v3 center, r32 radius)",
 			"Texture LoadTexture(Arena* arena, const char* path)",
