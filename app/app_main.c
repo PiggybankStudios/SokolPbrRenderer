@@ -157,12 +157,21 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	}
 	#endif
 	
+	app->testTexture = LoadTexture(stdHeap, "resources/image/piggyblob.png");
+	
 	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
 	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
 	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
 	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
 	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
+	
+	app->testFont = InitFont(stdHeap, StrLit("testFont"));
+	AttachTtfFileToFont(&app->testFont, OsReadBinFileScratch(FilePathLit("resources/font/consola.ttf")));
+	FontCharRange asciiRange = NewFontCharRange((u32)0x20, (u32)0x7F);
+	Result bakeResult = BakeFontAtlas(&app->testFont, 16.0f, FontStyleFlag_None, NewV2i(256, 256), 1, &asciiRange);
+	Assert(bakeResult == Result_Success);
+	RemoveAttachedTtfFile(&app->testFont);
 	
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
@@ -275,7 +284,18 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			SetViewMat(Mat4_Identity);
 			SetDepth(1.0f);
 			
-			DrawRectangle(NewRec(10, 10, 200, 80), MonokaiPurple);
+			// DrawRectangle(NewRec(10, 10, 200, 80), MonokaiPurple);
+			
+			rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testTexture.Height, (r32)app->testTexture.Width, (r32)app->testTexture.Height);
+			DrawTexturedRectangle(piggyblobRec, White, &app->testTexture);
+			
+			r32 atlasPosX = 0;
+			VarArrayLoop(&app->testFont.atlases, aIndex)
+			{
+				VarArrayLoopGet(FontAtlas, atlas, &app->testFont.atlases, aIndex);
+				DrawTexturedRectangle(NewRec(atlasPosX, 0, (r32)atlas->texture.Width, (r32)atlas->texture.Height), White, &atlas->texture);
+				atlasPosX += (r32)atlas->texture.Width;
+			}
 		}
 	}
 	EndFrame();

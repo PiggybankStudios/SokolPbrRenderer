@@ -21,11 +21,14 @@ struct AppData
 	VertBuffer cubeBuffer;
 	VertBuffer sphereBuffer;
 	
+	Texture testTexture;
 	Texture albedoTexture;
 	Texture normalTexture;
 	Texture metallicTexture;
 	Texture roughnessTexture;
 	Texture occlusionTexture;
+	
+	Font testFont;
 	
 	v3 spherePos;
 	r32 sphereRadius;
