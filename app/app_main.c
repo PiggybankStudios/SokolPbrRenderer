@@ -104,8 +104,8 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 	// AttachTtfFileToFont(font, OsReadBinFileScratch(FilePathLit("resources/font/consola.ttf")));
 	Result attachResult = AttachOsTtfFileToFont(font, fontName, fontSize, fontStyleFlags);
 	Assert(attachResult == Result_Success);
-	FontCharRange asciiRange = NewFontCharRange((u32)0x20, (u32)0x7F);
-	Result bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(256, 256), 1, &asciiRange);
+	FontCharRange asciiRange = NewFontCharRange((u32)0x20, (u32)0x7E);
+	Result bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(512, 512), 1, &asciiRange);
 	Assert(bakeResult == Result_Success);
 	RemoveAttachedTtfFile(font);
 }
@@ -179,7 +179,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
 	
 	app->testFont = InitFont(stdHeap, StrLit("testFont"));
-	RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), 18.0f, FontStyleFlag_Bold);
+	RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), 36.0f, FontStyleFlag_Bold);
 	
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
@@ -216,15 +216,32 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	{
 		platform->SetMouseLocked(false);
 	}
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Up) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
+	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Plus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
 	{
-		FontAtlas* firstAtlas = VarArrayGetFirst(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), firstAtlas->fontSize + 2.0f, FontStyleFlag_Bold);
+		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
+		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), lastAtlas->fontSize + 2.0f, FontStyleFlag_Bold);
 	}
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Down) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
+	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Minus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
 	{
-		FontAtlas* firstAtlas = VarArrayGetFirst(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), MaxR32(4.0f, firstAtlas->fontSize - 2.0f), FontStyleFlag_Bold);
+		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
+		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), MaxR32(4.0f, lastAtlas->fontSize - 2.0f), FontStyleFlag_Bold);
+	}
+	
+	if ((appIn->screenSizeChanged || IsEmptyStr(app->text)) && !appIn->isMinimized)
+	{
+		PrintLine_D("ScreenSize: %dx%d", appIn->screenSize.Width, appIn->screenSize.Height);
+		app->textPos = Div(ToV2Fromi(appIn->screenSize), 2.0f);
+		app->text = StrLit("Hello World!");
+		FreeTextLayout(&app->textLayout);
+		FontFlowState flowState = ZEROED;
+		flowState.font = &app->testFont;
+		flowState.position = app->textPos;
+		flowState.text = app->text;
+		flowState.fontSize = GetDefaultFontSize(&app->testFont);
+		flowState.styleFlags = GetDefaultFontStyleFlags(&app->testFont);
+		Result layoutResult = DoTextLayoutInArena(stdHeap, &flowState, &app->textLayout);
+		Assert(layoutResult == Result_Success);
+		app->textMeasure = MeasureText(&app->testFont, app->text);
 	}
 	
 	if (appIn->mouse.isLocked)
@@ -315,6 +332,19 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 				DrawTexturedRectangle(atlasRec, White, &atlas->texture);
 				DrawRectangleOutline(atlasRec, 2.0f, White);
 				atlasPosX += (r32)atlas->texture.Width;
+			}
+			
+			if (!IsEmptyStr(app->text))
+			{
+				BindFont(&app->testFont);
+				DrawText(app->text, app->textPos, White);
+				// DrawRectangle(gfx.prevFontFlow.visualRec, NewColor(255, 128, 100, 128));
+				DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
+				for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
+				{
+					FontFlowGlyph* glyph = &app->textLayout.glyphs[gIndex];
+					DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
+				}
 			}
 		}
 	}

@@ -29,6 +29,10 @@ struct AppData
 	Texture occlusionTexture;
 	
 	Font testFont;
+	v2 textPos;
+	Str8 text;
+	TextMeasure textMeasure;
+	TextLayout textLayout;
 	
 	v3 spherePos;
 	r32 sphereRadius;

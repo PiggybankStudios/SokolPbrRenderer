@@ -142,6 +142,11 @@ void PlatSappInit(void)
 	});
 	
 	InitGfxSystem(stdHeap, &gfx);
+	#if DEBUG_BUILD
+	gfx.prevFontFlow.numGlyphsAlloc = 256;
+	gfx.prevFontFlow.glyphs = AllocArray(FontFlowGlyph, stdHeap, gfx.prevFontFlow.numGlyphsAlloc);
+	NotNull(gfx.prevFontFlow.glyphs);
+	#endif
 	
 	platformData->appMemoryPntr = platformData->appApi.AppInit(platformInfo, platform);
 	NotNull(platformData->appMemoryPntr);
@@ -178,11 +183,39 @@ void PlatSappEvent(const sapp_event* event)
 			case SAPP_EVENTTYPE_TOUCHES_MOVED:     WriteLine_D("Event: TOUCHES_MOVED");     break;
 			case SAPP_EVENTTYPE_TOUCHES_ENDED:     WriteLine_D("Event: TOUCHES_ENDED");     break;
 			case SAPP_EVENTTYPE_TOUCHES_CANCELLED: WriteLine_D("Event: TOUCHES_CANCELLED"); break;
-			case SAPP_EVENTTYPE_RESIZED:           PrintLine_D("Event: RESIZED %dx%d / %dx%d", event->window_width, event->window_height, event->framebuffer_width, event->framebuffer_height); break;
-			case SAPP_EVENTTYPE_ICONIFIED:         WriteLine_D("Event: ICONIFIED");         break;
-			case SAPP_EVENTTYPE_RESTORED:          WriteLine_D("Event: RESTORED");          break;
-			case SAPP_EVENTTYPE_FOCUSED:           WriteLine_D("Event: FOCUSED");           break;
-			case SAPP_EVENTTYPE_UNFOCUSED:         WriteLine_D("Event: UNFOCUSED");         break;
+			case SAPP_EVENTTYPE_RESIZED:           /*PrintLine_D("Event: RESIZED %dx%d / %dx%d", event->window_width, event->window_height, event->framebuffer_width, event->framebuffer_height);*/ break;
+			case SAPP_EVENTTYPE_ICONIFIED:
+			{
+				if (platformData->currentAppInput != nullptr && platformData->currentAppInput->isMinimized == false)
+				{
+					platformData->currentAppInput->isMinimized = true;
+					platformData->currentAppInput->isMinimizedChanged = true;
+				}
+			} break;
+			case SAPP_EVENTTYPE_RESTORED:
+			{
+				if (platformData->currentAppInput != nullptr && platformData->currentAppInput->isMinimized == true)
+				{
+					platformData->currentAppInput->isMinimized = false;
+					platformData->currentAppInput->isMinimizedChanged = true;
+				}
+			} break;
+			case SAPP_EVENTTYPE_FOCUSED:
+			{
+				if (platformData->currentAppInput != nullptr && platformData->currentAppInput->isFocused == false)
+				{
+					platformData->currentAppInput->isFocused = true;
+					platformData->currentAppInput->isFocusedChanged = true;
+				}
+			} break;
+			case SAPP_EVENTTYPE_UNFOCUSED:
+			{
+				if (platformData->currentAppInput != nullptr && platformData->currentAppInput->isFocused == true)
+				{
+					platformData->currentAppInput->isFocused = false;
+					platformData->currentAppInput->isFocusedChanged = true;
+				}
+			} break;
 			case SAPP_EVENTTYPE_SUSPENDED:         WriteLine_D("Event: SUSPENDED");         break;
 			case SAPP_EVENTTYPE_RESUMED:           WriteLine_D("Event: RESUMED");           break;
 			case SAPP_EVENTTYPE_QUIT_REQUESTED:    WriteLine_D("Event: QUIT_REQUESTED");    break;
@@ -200,13 +233,23 @@ void PlatSappFrame(void)
 	//Swap which appInput is being written to and pass the static version to the application
 	AppInput* oldAppInput = platformData->currentAppInput;
 	AppInput* newAppInput = (platformData->currentAppInput == &platformData->appInputs[0]) ? &platformData->appInputs[1] : &platformData->appInputs[0];
+	
+	v2i newScreenSize = NewV2i(sapp_width(), sapp_height());
+	if (!AreEqual(newScreenSize, oldAppInput->screenSize)) { oldAppInput->screenSizeChanged = true; }
+	oldAppInput->screenSize = newScreenSize;
+	bool newIsFullScreen = sapp_is_fullscreen();
+	if (oldAppInput->isFullscreen != newIsFullScreen) { oldAppInput->isFullscreenChanged = true; }
+	oldAppInput->isFullscreen = newIsFullScreen;
+	
 	MyMemCopy(newAppInput, oldAppInput, sizeof(AppInput));
+	newAppInput->screenSizeChanged = false;
+	newAppInput->isFullscreenChanged = false;
+	newAppInput->isMinimizedChanged = false;
+	newAppInput->isFocusedChanged = false;
 	RefreshKeyboardState(&newAppInput->keyboard);
 	RefreshMouseState(&newAppInput->mouse, sapp_mouse_locked(), NewV2(sapp_widthf()/2.0f, sapp_heightf()/2.0f));
 	IncrementU64(newAppInput->frameIndex);
 	IncrementU64By(newAppInput->programTime, 16); //TODO: Replace this hardcoded increment!
-	newAppInput->screenSize = NewV2i(sapp_width(), sapp_height());
-	newAppInput->isFullscreen = sapp_is_fullscreen();
 	platformData->oldAppInput = oldAppInput;
 	platformData->currentAppInput = newAppInput;
 	

@@ -27,7 +27,13 @@ struct AppInput
 	//TODO: Add ControllerStates
 	
 	bool isFullscreen;
+	bool isFullscreenChanged;
+	bool isMinimized;
+	bool isMinimizedChanged;
+	bool isFocused;
+	bool isFocusedChanged;
 	v2i screenSize;
+	bool screenSizeChanged;
 	// v2i windowSize; //TODO: Can we somehow ask sokol_sapp for the window size (include title bar and border)?
 };
 
