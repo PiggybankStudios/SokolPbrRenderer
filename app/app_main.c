@@ -22,6 +22,14 @@ Description:
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
+// #define TEST_FONT_NAME "Georgia"
+// #define TEST_FONT_NAME "Fira Code"
+// #define TEST_FONT_NAME "Consolas"
+// #define TEST_FONT_NAME "noto mono"
+#define TEST_FONT_NAME "Arial"
+#define TEST_FONT_STYLE FontStyleFlag_Bold
+#define TEST_FONT_START_SIZE 36.0f
+
 // +--------------------------------------------------------------+
 // |                         Header Files                         |
 // +--------------------------------------------------------------+
@@ -101,12 +109,65 @@ Texture LoadTexture(Arena* arena, const char* path)
 void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFlags)
 {
 	ClearFontAtlases(font);
-	// AttachTtfFileToFont(font, OsReadBinFileScratch(FilePathLit("resources/font/consola.ttf")));
+	
+	// UNUSED(fontName);
+	// AttachTtfFileToFont(font, OsReadBinFileScratch(FilePathLit("consolab.ttf")), fontStyleFlags);
 	Result attachResult = AttachOsTtfFileToFont(font, fontName, fontSize, fontStyleFlags);
 	Assert(attachResult == Result_Success);
-	FontCharRange asciiRange = NewFontCharRange((u32)0x20, (u32)0x7E);
-	Result bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(512, 512), 1, &asciiRange);
+	
+	FontCharRange charRanges[] = {
+		FontCharRange_ASCII,
+		FontCharRange_LatinExt,
+	};
+	Result bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(256, 256), ArrayCount(charRanges), &charRanges[0]);
+	if (bakeResult == Result_NotEnoughSpace)
+	{
+		bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(512, 512), ArrayCount(charRanges), &charRanges[0]);
+		if (bakeResult == Result_NotEnoughSpace)
+		{
+			bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(1024, 1024), ArrayCount(charRanges), &charRanges[0]);
+		}
+	}
 	Assert(bakeResult == Result_Success);
+	
+	FillFontKerningTable(font);
+	PrintLine_D("Kerning table has %llu entries", (u64)font->kerningTable.numEntries);
+	for (uxx eIndex = 0; eIndex < font->kerningTable.numEntries; eIndex++)
+	{
+		FontKerningTableEntry* entry = &font->kerningTable.entries[eIndex];
+		FontGlyph* leftGlyph = nullptr;
+		FontGlyph* rightGlyph = nullptr;
+		VarArrayLoop(&font->atlases, aIndex)
+		{
+			VarArrayLoopGet(FontAtlas, atlas, &font->atlases, aIndex);
+			VarArrayLoop(&atlas->glyphs, gIndex)
+			{
+				VarArrayLoopGet(FontGlyph, glyph, &atlas->glyphs, gIndex);
+				if (glyph->ttfGlyphIndex >= 0)
+				{
+					if ((uxx)glyph->ttfGlyphIndex == entry->leftTtfGlyphIndex) { leftGlyph = glyph; }
+					if ((uxx)glyph->ttfGlyphIndex == entry->rightTtfGlyphIndex) { rightGlyph = glyph; }
+					if (leftGlyph != nullptr && rightGlyph != nullptr) { break; }
+				}
+			}
+			if (leftGlyph != nullptr && rightGlyph != nullptr) { break; }
+		}
+		if (leftGlyph != nullptr && rightGlyph != nullptr)
+		{
+			PrintLine_D("%c%c (0x%X/0x%X) = %f",
+				(char)leftGlyph->codepoint, (char)rightGlyph->codepoint,
+				leftGlyph->codepoint, rightGlyph->codepoint,
+				entry->value
+			);
+		}
+		else
+		{
+			PrintLine_D("%u/%u = %f", entry->leftTtfGlyphIndex, entry->rightTtfGlyphIndex, entry->value);
+		}
+	}
+	
+	// OsWriteBinFile(FilePathLit("Default.ttf"), font->ttfFile);
+	
 	RemoveAttachedTtfFile(font);
 }
 
@@ -169,17 +230,25 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	}
 	#endif
 	
+	#if 1
 	app->testTexture = LoadTexture(stdHeap, "resources/image/piggyblob.png");
-	
 	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
 	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
 	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
 	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
 	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
+	#else
+	app->testTexture = LoadTexture(stdHeap, "piggyblob.png");
+	app->albedoTexture = LoadTexture(stdHeap, "fire_hydrant_Base_Color.png");
+	app->normalTexture = LoadTexture(stdHeap, "fire_hydrant_Normal_OpenGL.png");
+	app->metallicTexture = LoadTexture(stdHeap, "fire_hydrant_Metallic.png");
+	app->roughnessTexture = LoadTexture(stdHeap, "fire_hydrant_Roughness.png");
+	app->occlusionTexture = LoadTexture(stdHeap, "fire_hydrant_Mixed_AO.png");
+	#endif
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
 	
 	app->testFont = InitFont(stdHeap, StrLit("testFont"));
-	RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), 36.0f, FontStyleFlag_Bold);
+	RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), TEST_FONT_START_SIZE, TEST_FONT_STYLE);
 	
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
@@ -219,12 +288,12 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Plus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
 	{
 		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), lastAtlas->fontSize + 2.0f, FontStyleFlag_Bold);
+		RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), lastAtlas->fontSize + 2.0f, TEST_FONT_STYLE);
 	}
 	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Minus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
 	{
 		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit("Georgia"), MaxR32(4.0f, lastAtlas->fontSize - 2.0f), FontStyleFlag_Bold);
+		RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), MaxR32(4.0f, lastAtlas->fontSize - 2.0f), TEST_FONT_STYLE);
 	}
 	
 	if ((appIn->screenSizeChanged || IsEmptyStr(app->text)) && !appIn->isMinimized)
@@ -339,12 +408,12 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 				BindFont(&app->testFont);
 				DrawText(app->text, app->textPos, White);
 				// DrawRectangle(gfx.prevFontFlow.visualRec, NewColor(255, 128, 100, 128));
-				DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
-				for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
-				{
-					FontFlowGlyph* glyph = &app->textLayout.glyphs[gIndex];
-					DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
-				}
+				// DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
+				// for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
+				// {
+				// 	FontFlowGlyph* glyph = &app->textLayout.glyphs[gIndex];
+				// 	DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
+				// }
 			}
 		}
 	}

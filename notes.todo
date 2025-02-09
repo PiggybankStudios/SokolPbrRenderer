@@ -1,0 +1,9 @@
+
+# TODO List:
+	[ ] Add support for passing multiple lights into the shader
+	[ ] Add support for parsing OBJ and MAT files, load the fire hydrant properly
+	[ ] Add support for parsing GLTF files (maybe a third_party library?)
+	[ ] Construct a lit scene render graph, automatically figure out which lights should be passed to each render surface, group together items with same pipeline requirements
+	[ ] Add support for loading/creating cubemaps
+	[ ] Get our swapchain/pipeline rendering with HDR support?
+	[ ] 
