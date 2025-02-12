@@ -22,6 +22,8 @@ Description:
 #define BUILD_WEB     0
 // Runs the sokol-shdc.exe on all .glsl files in the source directory to produce .glsl.h and .glsl.c files and then compiles the .glsl.c files to .obj
 #define BUILD_SHADERS 0
+// Builds the bullet_main.cpp in C++ mode into bullet.lib which can then be linked into the platform layer
+#define BUILD_BULLET  1
 
 // Controls whether we are making a build that we want to run with a Debugger.
 // This often sacrifices runtime speed or code size for extra debug information.
@@ -31,7 +33,7 @@ Description:
 // Compiles core/piggen/main.c
 #define BUILD_PIGGEN            0
 // Same as above but only compiles if piggen.exe doesn't already exist in the _build folder
-#define BUILD_PIGGEN_IF_NEEDED  1
+#define BUILD_PIGGEN_IF_NEEDED  0
 // Generates code for all projects using piggen.exe (you can turn this off if you're not making changes to generated code and you've already generated it once)
 #define RUN_PIGGEN              0
 
@@ -39,14 +41,14 @@ Description:
 #define BUILD_INTO_SINGLE_UNIT  0
 
 // Compiles piggen/main.c to either dynamic or static library
-#define BUILD_PIG_CORE_LIB            1
+#define BUILD_PIG_CORE_LIB            0
 // Same as above but only compiles if the dll doesn't already exist in the _build folder
 #define BUILD_PIG_CORE_LIB_IF_NEEDED  1
 
 // Compiles app/platform_main.c to %PROJECT_EXE_NAME%.exe
 #define BUILD_APP_EXE  1
 // Compiles app/app_main.c to %PROJECT_DLL_NAME%.dll
-#define BUILD_APP_DLL  1
+#define BUILD_APP_DLL  0
 // Runs the %PROJECT_EXE_NAME%.exe
 #define RUN_APP        0
 
@@ -64,6 +66,8 @@ Description:
 #define USE_EMSCRIPTEN 0
 // Enables auto-profiling on function entry/exit (for clang only). Dumps to a file that can be viewed by spall
 #define ENABLE_AUTO_PROFILE 0
+
+#define BUILD_WITH_BULLET    1
 
 #define PROJECT_READABLE_NAME Sokol PBR Renderer
 #define PROJECT_FOLDER_NAME   SokolPbrRenderer

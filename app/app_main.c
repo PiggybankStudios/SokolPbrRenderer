@@ -114,6 +114,7 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 	// AttachTtfFileToFont(font, OsReadBinFileScratch(FilePathLit("consolab.ttf")), fontStyleFlags);
 	Result attachResult = AttachOsTtfFileToFont(font, fontName, fontSize, fontStyleFlags);
 	Assert(attachResult == Result_Success);
+	// OsWriteBinFile(FilePathLit("Default.ttf"), font->ttfFile);
 	
 	FontCharRange charRanges[] = {
 		FontCharRange_ASCII,
@@ -131,6 +132,7 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 	Assert(bakeResult == Result_Success);
 	
 	FillFontKerningTable(font);
+	#if 0
 	PrintLine_D("Kerning table has %llu entries", (u64)font->kerningTable.numEntries);
 	for (uxx eIndex = 0; eIndex < font->kerningTable.numEntries; eIndex++)
 	{
@@ -165,8 +167,7 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 			PrintLine_D("%u/%u = %f", entry->leftTtfGlyphIndex, entry->rightTtfGlyphIndex, entry->value);
 		}
 	}
-	
-	// OsWriteBinFile(FilePathLit("Default.ttf"), font->ttfFile);
+	#endif
 	
 	RemoveAttachedTtfFile(font);
 }

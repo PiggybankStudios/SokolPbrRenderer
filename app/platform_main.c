@@ -37,6 +37,9 @@ Description:
 // +--------------------------------------------------------------+
 // |                         Header Files                         |
 // +--------------------------------------------------------------+
+#if BUILD_WITH_BULLET
+#include "bullet_c_api.h"
+#endif
 #include "platform_interface.h"
 #include "platform_main.h"
 
@@ -73,6 +76,13 @@ void PlatSappInit(void)
 	InitScratchArenasVirtual(Gigabytes(4));
 	
 	ScratchBegin(loadScratch);
+	
+	#if BUILD_WITH_BULLET
+	void* physicsWorld = InitBulletPhysics(stdHeap);
+	FreeBulletPhysics(stdHeap, physicsWorld);
+	// void* pntr = TestAllocatingClasses(stdHeap);
+	// TestFreeingClasses(stdHeap, pntr);
+	#endif
 	
 	InitKeyboardState(&platformData->appInputs[0].keyboard);
 	InitKeyboardState(&platformData->appInputs[1].keyboard);
