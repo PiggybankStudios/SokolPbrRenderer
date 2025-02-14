@@ -112,6 +112,9 @@
 		],
 		"custom_constants":
 		[
+			"ARENA_DEBUG_PADDING_SIZE",
+			"ARENA_DEBUG_PADDING_VALUE",
+			"ArenaFlag_AddPaddingForDebug",
 			"BOX_MESH_NUM_INDICES_PER_FACES",
 			"BOX_MESH_NUM_VERTICES_PER_FACES",
 			"BOX_NUM_FACES",
@@ -404,6 +407,7 @@
 			"bool IsMouseBtnPressedRepeating(MouseState* mouse, u64 prevTime, u64 currentTime, MouseBtn btn, u64 repeatDelay, u64 repeatPeriod)",
 			"bool IsMouseBtnReleased(MouseState* mouse, MouseBtn btn)",
 			"bool IsMouseBtnUp(MouseState* mouse, MouseBtn btn)",
+			"bool MemArenaVerifyPaddingAround(const Arena* arena, const void* allocPntr, uxx allocSize, bool assertOnFailure)",
 			"bool UpdateBtnState(BtnState* state, u64 currentTime, bool isDown)",
 			"box BothBox(box left, box right)",
 			"boxi BothBoxi(boxi left, boxi right)",

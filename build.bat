@@ -302,7 +302,7 @@ if "%BUILD_INTO_SINGLE_UNIT%"=="1" (
 :: +--------------------------------------------------------------+
 set bullet_source_path=%app%/bullet_c_api.cpp
 set bullet_obj_path=bullet_c_api.obj
-set bullet_cl_args=/c %common_cl_flags% %cpp_cl_flags% /I"%core%/third_party/bullet" /Fo%bullet_obj_path% %bullet_source_path% /link %common_ld_flags%
+set bullet_cl_args=%common_cl_flags% %cpp_cl_flags% /I"%core%/third_party/bullet" /Febullet.exe %bullet_source_path% /link %common_ld_flags% %platform_ld_flags%
 if "%BUILD_BULLET%"=="1" (
 	if "%BUILD_WINDOWS%"=="1" (
 		del %bullet_obj_path% > NUL 2> NUL

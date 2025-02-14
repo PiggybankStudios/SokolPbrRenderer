@@ -7,7 +7,7 @@ Description:
 */
 
 #include "build_config.h"
-#define PIG_CORE_IMPLEMENTATION 0
+#define PIG_CORE_IMPLEMENTATION 1
 
 #include "base/base_compiler_check.h"
 #include "base/base_defines_check.h"
@@ -20,6 +20,7 @@ START_EXTERN_C
 #include "base/base_debug_output.h"
 #include "mem/mem_arena.h"
 #include "mem/mem_scratch.h"
+#include "base/base_debug_output_impl.h"
 END_EXTERN_C
 
 #include "third_party/bullet/btBulletDynamicsCommon.h"
@@ -46,9 +47,21 @@ struct PhysicsWorld
 	#endif
 };
 
+void VerifyWorld(Arena* arena, PhysicsWorld* world)
+{
+	MemArenaVerifyPaddingAround(arena, world, sizeof(PhysicsWorld), true);
+	if (world->collisionConfig != nullptr) { MemArenaVerifyPaddingAround(arena, world->collisionConfig, sizeof(btDefaultCollisionConfiguration), true); }
+	if (world->dispatcher != nullptr) { MemArenaVerifyPaddingAround(arena, world->dispatcher, sizeof(btCollisionDispatcher), true); }
+	if (world->broadphase != nullptr) { MemArenaVerifyPaddingAround(arena, world->broadphase, sizeof(btDbvtBroadphase), true); }
+	// if (world->solver != nullptr) { MemArenaVerifyPaddingAround(arena, world->solver, sizeof(btSequentialImpulseConstraintSolver), true); }
+	// if (world->dynamicsWorld != nullptr) { MemArenaVerifyPaddingAround(arena, world->dynamicsWorld, sizeof(btDiscreteDynamicsWorld), true); }
+}
+
 void* InitBulletPhysics(Arena* arena)
 {
 	PhysicsWorld* result = AllocType(PhysicsWorld, arena);
+	ClearPointer(result);
+	VerifyWorld(arena, result);
 	PrintLine_D("Hello from Bullet Physics v%d", btGetVersion());
 	#if 0
 	std::construct_at(&result->collisionConfig);
@@ -72,9 +85,18 @@ void* InitBulletPhysics(Arena* arena)
 	);
 	result->dynamicsWorld->setGravity(btVector3(0, -10, 0));
 	#else
-	result->collisionConfig = new btDefaultCollisionConfiguration();
-	result->dispatcher = new btCollisionDispatcher(result->collisionConfig);
-	result->broadphase = new btDbvtBroadphase();
+	result->collisionConfig = AllocType(btDefaultCollisionConfiguration, arena);
+	VerifyWorld(arena, result);
+	new (result->collisionConfig) btDefaultCollisionConfiguration();
+	VerifyWorld(arena, result);
+	result->dispatcher = AllocType(btCollisionDispatcher, arena);
+	VerifyWorld(arena, result);
+	new (result->dispatcher) btCollisionDispatcher(result->collisionConfig);
+	VerifyWorld(arena, result);
+	result->broadphase = AllocType(btDbvtBroadphase, arena);
+	VerifyWorld(arena, result);
+	new (result->broadphase) btDbvtBroadphase();
+	VerifyWorld(arena, result);
 	// result->solver = new btSequentialImpulseConstraintSolver();
 	// result->dynamicsWorld = new btDiscreteDynamicsWorld(
 	// 	result->dispatcher,
@@ -100,9 +122,13 @@ void FreeBulletPhysics(Arena* arena, void* worldVoidPntr)
 	#else
 	// delete world->dynamicsWorld;
 	// delete world->solver;
+	VerifyWorld(arena, world);
 	delete world->broadphase;
+	VerifyWorld(arena, world);
 	delete world->dispatcher;
+	VerifyWorld(arena, world);
 	delete world->collisionConfig;
+	VerifyWorld(arena, world);
 	#endif
 	ClearPointer(world);
 	FreeMem(arena, world, sizeof(PhysicsWorld));
@@ -172,6 +198,17 @@ void TestFreeingClasses(Arena* arena, void* pntr)
 	PrintLine_D("GetInteger() -> %d", bPntr->GetInteger());
 	std::destroy_at(bPntr);
 	FreeMem(arena, bPntr, sizeof(ClassB));
+}
+
+int main()
+{
+	Arena stdHeap = {};
+	InitArenaStdHeap(&stdHeap);
+	FlagSet(stdHeap.flags, ArenaFlag_AddPaddingForDebug);
+	InitScratchArenasVirtual(Gigabytes(1));
+	void* world = InitBulletPhysics(&stdHeap);
+	FreeBulletPhysics(&stdHeap, world);
+	return 1;
 }
 
 END_EXTERN_C
