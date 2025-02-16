@@ -7,6 +7,14 @@ Date:   02\02\2025
 #ifndef _APP_MAIN_H
 #define _APP_MAIN_H
 
+typedef struct Model3D Model3D;
+struct Model3D
+{
+	ModelData data;
+	VarArray vertBuffers; //VertBuffer
+	VarArray textures; //Texture
+};
+
 typedef struct AppData AppData;
 struct AppData
 {
@@ -27,6 +35,8 @@ struct AppData
 	Texture metallicTexture;
 	Texture roughnessTexture;
 	Texture occlusionTexture;
+	
+	Model3D testModel;
 	
 	Font testFont;
 	v2 textPos;

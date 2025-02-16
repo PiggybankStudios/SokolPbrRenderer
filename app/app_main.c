@@ -19,6 +19,7 @@ Description:
 #include "mem/mem_all.h"
 #include "struct/struct_all.h"
 #include "input/input_all.h"
+#include "file_fmt/file_fmt_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
@@ -172,6 +173,37 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 	RemoveAttachedTtfFile(font);
 }
 
+Model3D LoadModel(FilePath filePath)
+{
+	Model3D result = ZEROED;
+	Result loadResult = TryLoadGltfFile(filePath, stdHeap, &result.data);
+	if (loadResult != Result_Success)
+	{
+		PrintLine_E("Failed to load/parse gltf file at \"%.*s\": %s", StrPrint(filePath), GetResultStr(loadResult));
+		return result;
+	}
+	InitVarArrayWithInitial(Texture, &result.textures, stdHeap, result.data.textures.length);
+	VarArrayLoop(&result.data.textures, tIndex)
+	{
+		VarArrayLoopGet(ModelDataTexture, texture, &result.data.textures, tIndex);
+		Texture* newTexture = VarArrayAdd(Texture, &result.textures);
+		NotNull(newTexture);
+		*newTexture = InitTexture(stdHeap, texture->name, texture->imageData.size, texture->imageData.pixels, TextureFlag_IsRepeating);
+		Assert(newTexture->error == Result_Success);
+	}
+	InitVarArrayWithInitial(VertBuffer, &result.vertBuffers, stdHeap, result.data.parts.length);
+	VarArrayLoop(&result.data.parts, pIndex)
+	{
+		VarArrayLoopGet(ModelDataPart, part, &result.data.parts, pIndex);
+		VertBuffer* newVertBuffer = VarArrayAdd(VertBuffer, &result.vertBuffers);
+		NotNull(newVertBuffer);
+		*newVertBuffer = InitVertBuffer3D(stdHeap, part->name, VertBufferUsage_Static, part->vertices.length, (Vertex3D*)part->vertices.items, false);
+		if (part->indices.length > 0) { AddIndicesToVertBufferEx(newVertBuffer, sizeof(i32), part->indices.length, (i32*)part->indices.items, false); }
+		Assert(newVertBuffer->error == Result_Success);
+	}
+	return result;
+}
+
 // +==============================+
 // |           AppInit            |
 // +==============================+
@@ -233,18 +265,22 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	#if 1
 	app->testTexture = LoadTexture(stdHeap, "resources/image/piggyblob.png");
-	app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
-	app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
-	app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
-	app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
-	app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
+	// app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
+	// app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
+	// app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
+	// app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
+	// app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
+	// app->testModel = LoadModel(FilePathLit("resources/model/fire_hydrant/fire_hydrant.gltf"));
+	// app->testModel = LoadModel(FilePathLit("resources/model/fire_hydrant2/fire_hydrant_extern.gltf"));
+	app->testModel = LoadModel(FilePathLit("resources/model/chest/chest.gltf"));
 	#else
 	app->testTexture = LoadTexture(stdHeap, "piggyblob.png");
-	app->albedoTexture = LoadTexture(stdHeap, "fire_hydrant_Base_Color.png");
-	app->normalTexture = LoadTexture(stdHeap, "fire_hydrant_Normal_OpenGL.png");
-	app->metallicTexture = LoadTexture(stdHeap, "fire_hydrant_Metallic.png");
-	app->roughnessTexture = LoadTexture(stdHeap, "fire_hydrant_Roughness.png");
-	app->occlusionTexture = LoadTexture(stdHeap, "fire_hydrant_Mixed_AO.png");
+	// app->albedoTexture = LoadTexture(stdHeap, "fire_hydrant_Base_Color.png");
+	// app->normalTexture = LoadTexture(stdHeap, "fire_hydrant_Normal_OpenGL.png");
+	// app->metallicTexture = LoadTexture(stdHeap, "fire_hydrant_Metallic.png");
+	// app->roughnessTexture = LoadTexture(stdHeap, "fire_hydrant_Roughness.png");
+	// app->occlusionTexture = LoadTexture(stdHeap, "fire_hydrant_Mixed_AO.png");
+	app->testModel = LoadModel(FilePathLit("chest.gltf"));
 	#endif
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
 	
@@ -351,12 +387,6 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		{
 			// BindShader(&app->main3dShader);
 			BindShader(&app->pbrShader);
-			BindTextureAtIndex(&app->albedoTexture, 0);
-			BindTextureAtIndex(&app->normalTexture, 1);
-			BindTextureAtIndex(&app->metallicTexture, 2);
-			BindTextureAtIndex(&app->roughnessTexture, 3);
-			BindTextureAtIndex(&app->occlusionTexture, 4);
-			SetSourceRec(NewRec(0, 0, (r32)app->occlusionTexture.Width, (r32)app->occlusionTexture.Height));
 			SetShaderUniformByNameV4(&app->pbrShader, StrLit("lightPos"), ToV4From3(app->lightPos, 1.0f));
 			SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
 			
@@ -370,8 +400,29 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			SetViewMat(viewMat);
 			
 			// DrawBox(NewBoxV(Sub(app->spherePos, FillV3(app->sphereRadius)), FillV3(app->sphereRadius*2)), White);
-			DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
-			DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
+			// DrawSphere(NewSphereV(app->spherePos, app->sphereRadius), White);
+			// DrawBox(NewBoxV(Add(Sub(app->spherePos, FillV3(app->sphereRadius)), NewV3(2.0f*1, 0, 0)), FillV3(app->sphereRadius*2)), White);
+			
+			// DrawModel(&app->testModel, app->spherePos, FillV3(app->sphereRadius*2), Quat_Identity);
+			for (uxx yIndex = 0; yIndex < 10; yIndex++)
+			{
+				for (uxx xIndex = 0; xIndex < 10; xIndex++)
+				{
+					RandomSeries random = ZEROED;
+					InitRandomSeriesDefault(&random);
+					SeedRandomSeriesU64(&random, (u64)(xIndex * 17 + yIndex * 117));
+					r32 scale = GetRandR32Range(&random, 0.85f, 1.0f);
+					r32 rotation = GetRandR32Range(&random, 0, TwoPi32);
+					v3 modelPos = NewV3(xIndex * 1.5f, 0, yIndex * 1.5f);
+					DrawModel(&app->testModel, modelPos, FillV3(scale), ToQuatFromAxis(V3_Up, rotation));
+				}
+			}
+			
+			BindTextureAtIndex(&gfx.pixelTexture, 0);
+			BindTextureAtIndex(&gfx.pixelTexture, 1);
+			BindTextureAtIndex(&gfx.pixelTexture, 2);
+			BindTextureAtIndex(&gfx.pixelTexture, 3);
+			BindTextureAtIndex(&gfx.pixelTexture, 4);
 			DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
 		}
 		
@@ -394,6 +445,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testTexture.Height, (r32)app->testTexture.Width, (r32)app->testTexture.Height);
 			DrawTexturedRectangle(piggyblobRec, White, &app->testTexture);
 			
+			#if 0
 			r32 atlasPosX = 0;
 			VarArrayLoop(&app->testFont.atlases, aIndex)
 			{
@@ -416,6 +468,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 				// 	DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
 				// }
 			}
+			#endif
 		}
 	}
 	EndFrame();

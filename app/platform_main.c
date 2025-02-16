@@ -19,6 +19,7 @@ Description:
 #include "mem/mem_all.h"
 #include "struct/struct_all.h"
 #include "input/input_all.h"
+#include "file_fmt/file_fmt_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
