@@ -31,3 +31,36 @@ SET_MOUSE_LOCKED_DEF(Plat_SetMouseLocked)
 		platformData->currentAppInput->mouse.isLocked = isMouseLocked;
 	}
 }
+
+// +==============================+
+// |     Plat_SetWindowTitle      |
+// +==============================+
+// void Plat_SetWindowTitle(Str8 windowTitle)
+SET_WINDOW_TITLE_DEF(Plat_SetWindowTitle)
+{
+	ScratchBegin(scratch);
+	Str8 windowTitleNt = AllocStrAndCopy(scratch, windowTitle.length, windowTitle.chars, true);
+	NotNull(windowTitleNt.chars);
+	sapp_set_window_title(windowTitleNt.chars);
+	ScratchEnd(scratch);
+}
+
+// +==============================+
+// |      Plat_SetWindowIcon      |
+// +==============================+
+// void Plat_SetWindowIcon(uxx numIconSizes, const ImageData* iconSizes)
+SET_WINDOW_ICON_DEF(Plat_SetWindowIcon)
+{
+	Assert(numIconSizes <= SAPP_MAX_ICONIMAGES);
+	Assert(iconSizes != nullptr || numIconSizes == 0);
+	sapp_icon_desc iconDesc = ZEROED;
+	iconDesc.sokol_default = (numIconSizes == 0);
+	for (uxx iIndex = 0; iIndex < numIconSizes; iIndex++)
+	{
+		const ImageData* imageData = &iconSizes[iIndex];
+		iconDesc.images[iIndex].width = (int)imageData->size.Width;
+		iconDesc.images[iIndex].height = (int)imageData->size.Height;
+		iconDesc.images[iIndex].pixels = (sapp_range){ imageData->pixels, sizeof(u32) * imageData->numPixels };
+	}
+	sapp_set_icon(&iconDesc);
+}

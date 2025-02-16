@@ -93,18 +93,39 @@ void UpdateDllGlobals(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, 
 	appIn = appInput;
 }
 
-Texture LoadTexture(Arena* arena, const char* path)
+ImageData LoadImageData(Arena* arena, const char* path)
 {
 	ScratchBegin1(scratch, arena);
 	Slice fileContents = Slice_Empty;
 	bool readFileResult = OsReadFile(FilePathLit(path), scratch, false, &fileContents);
 	Assert(readFileResult);
 	ImageData imageData = ZEROED;
-	Result parseResult = TryParseImageFile(fileContents, scratch, &imageData);
+	Result parseResult = TryParseImageFile(fileContents, arena, &imageData);
 	Assert(parseResult == Result_Success);
+	ScratchEnd(scratch);
+	return imageData;
+}
+Texture LoadTexture(Arena* arena, const char* path)
+{
+	ScratchBegin1(scratch, arena);
+	ImageData imageData = LoadImageData(scratch, path);
 	Texture result = InitTexture(arena, GetFileNamePart(FilePathLit(path), true), imageData.size, imageData.pixels, TextureFlag_IsRepeating);
 	ScratchEnd(scratch);
 	return result;
+}
+
+void LoadWindowIcon()
+{
+	ScratchBegin(scratch);
+	ImageData iconImageDatas[6];
+	iconImageDatas[0] = LoadImageData(scratch, "resources/image/icon_16.png");
+	iconImageDatas[1] = LoadImageData(scratch, "resources/image/icon_24.png");
+	iconImageDatas[2] = LoadImageData(scratch, "resources/image/icon_32.png");
+	iconImageDatas[3] = LoadImageData(scratch, "resources/image/icon_64.png");
+	iconImageDatas[4] = LoadImageData(scratch, "resources/image/icon_120.png");
+	iconImageDatas[5] = LoadImageData(scratch, "resources/image/icon_256.png");
+	platform->SetWindowIcon(ArrayCount(iconImageDatas), &iconImageDatas[0]);
+	ScratchEnd(scratch);
 }
 
 void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFlags)
@@ -220,6 +241,9 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	AppData* appData = AllocType(AppData, inPlatformInfo->platformStdHeap);
 	ClearPointer(appData);
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, (void*)appData, nullptr);
+	
+	platform->SetWindowTitle(StrLit("Sokol PBR"));
+	LoadWindowIcon();
 	
 	#if 1
 	GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);

@@ -46,11 +46,19 @@ typedef GET_SOKOL_SWAPCHAIN_DEF(GetSokolSwapchain_f);
 #define SET_MOUSE_LOCKED_DEF(functionName) void functionName(bool isMouseLocked)
 typedef SET_MOUSE_LOCKED_DEF(SetMouseLocked_f);
 
+#define SET_WINDOW_TITLE_DEF(functionName) void functionName(Str8 windowTitle)
+typedef SET_WINDOW_TITLE_DEF(SetWindowTitle_f);
+
+#define SET_WINDOW_ICON_DEF(functionName) void functionName(uxx numIconSizes, const ImageData* iconSizes)
+typedef SET_WINDOW_ICON_DEF(SetWindowIcon_f);
+
 typedef struct PlatformApi PlatformApi;
 struct PlatformApi
 {
 	GetSokolSwapchain_f* GetSokolSwapchain;
 	SetMouseLocked_f* SetMouseLocked;
+	SetWindowTitle_f* SetWindowTitle;
+	SetWindowIcon_f* SetWindowIcon;
 };
 
 // +--------------------------------------------------------------+

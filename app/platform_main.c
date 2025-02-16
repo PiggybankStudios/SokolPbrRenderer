@@ -102,6 +102,8 @@ void PlatSappInit(void)
 	ClearPointer(platform);
 	platform->GetSokolSwapchain = Plat_GetSokolSwapchain;
 	platform->SetMouseLocked = Plat_SetMouseLocked;
+	platform->SetWindowTitle = Plat_SetWindowTitle;
+	platform->SetWindowIcon = Plat_SetWindowIcon;
 	
 	#if BUILD_INTO_SINGLE_UNIT
 	{

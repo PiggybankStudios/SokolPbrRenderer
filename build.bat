@@ -317,13 +317,15 @@ if "%BUILD_BULLET%"=="1" (
 :: |                 Build %PROJECT_EXE_NAME%.exe                 |
 :: +--------------------------------------------------------------+
 set platform_source_path=%app%/platform_main.c
+set resources_rc_path=%app%\win_resources.rc
+set resources_res_path=win_resources.res
 set platform_exe_path=%PROJECT_EXE_NAME%.exe
 set platform_bin_path=%PROJECT_EXE_NAME%
 set platform_extra_objs=
 if "%BUILD_WITH_BULLET%"=="1" (
 	set platform_extra_objs=%platform_extra_objs% %bullet_obj_path%
 )
-set platform_cl_args=%common_cl_flags% %c_cl_flags% /Fe%platform_exe_path% %platform_source_path% %platform_extra_objs% /link %common_ld_flags% %platform_ld_flags%
+set platform_cl_args=%common_cl_flags% %c_cl_flags% /Fe%platform_exe_path% %platform_source_path% %platform_extra_objs% /link %common_ld_flags% %platform_ld_flags% %resources_res_path%
 set platform_clang_args=%common_clang_flags% %linux_clang_flags% -o %platform_bin_path% ../%platform_source_path%
 if "%BUILD_INTO_SINGLE_UNIT%"=="1" (
 	set platform_cl_args=%platform_cl_args% %shader_object_files%
@@ -340,6 +342,7 @@ if "%BUILD_APP_EXE%"=="1" (
 		
 		echo.
 		echo [Building %platform_exe_path% for Windows...]
+		rc /nologo /Fo%resources_res_path% %resources_rc_path%
 		cl %platform_cl_args%
 		echo [Built %platform_exe_path% for Windows!]
 		
