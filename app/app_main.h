@@ -20,6 +20,11 @@ struct AppData
 {
 	bool initialized;
 	
+	#if BUILD_WITH_CLAY
+	ClayUIRenderer clay;
+	u16 clayFontId;
+	#endif
+	
 	sg_pass_action sokolPassAction;
 	Shader main2dShader;
 	Shader main3dShader;
@@ -39,6 +44,7 @@ struct AppData
 	Model3D testModel;
 	
 	Font testFont;
+	Font debugFont;
 	v2 textPos;
 	Str8 text;
 	TextMeasure textMeasure;

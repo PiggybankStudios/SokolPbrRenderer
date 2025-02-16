@@ -20,6 +20,7 @@ Description:
 #include "struct/struct_all.h"
 #include "input/input_all.h"
 #include "file_fmt/file_fmt_all.h"
+#include "ui/ui_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
@@ -118,12 +119,21 @@ void LoadWindowIcon()
 {
 	ScratchBegin(scratch);
 	ImageData iconImageDatas[6];
+	#if 1
 	iconImageDatas[0] = LoadImageData(scratch, "resources/image/icon_16.png");
 	iconImageDatas[1] = LoadImageData(scratch, "resources/image/icon_24.png");
 	iconImageDatas[2] = LoadImageData(scratch, "resources/image/icon_32.png");
 	iconImageDatas[3] = LoadImageData(scratch, "resources/image/icon_64.png");
 	iconImageDatas[4] = LoadImageData(scratch, "resources/image/icon_120.png");
 	iconImageDatas[5] = LoadImageData(scratch, "resources/image/icon_256.png");
+	#else
+	iconImageDatas[0] = LoadImageData(scratch, "icon_16.png");
+	iconImageDatas[1] = LoadImageData(scratch, "icon_24.png");
+	iconImageDatas[2] = LoadImageData(scratch, "icon_32.png");
+	iconImageDatas[3] = LoadImageData(scratch, "icon_64.png");
+	iconImageDatas[4] = LoadImageData(scratch, "icon_120.png");
+	iconImageDatas[5] = LoadImageData(scratch, "icon_256.png");
+	#endif
 	platform->SetWindowIcon(ArrayCount(iconImageDatas), &iconImageDatas[0]);
 	ScratchEnd(scratch);
 }
@@ -310,6 +320,13 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	app->testFont = InitFont(stdHeap, StrLit("testFont"));
 	RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), TEST_FONT_START_SIZE, TEST_FONT_STYLE);
+	app->debugFont = InitFont(stdHeap, StrLit("debugFont"));
+	RasterizeFontAtSize(&app->debugFont, StrLit("Consolas"), 18, FontStyleFlag_Bold);
+	
+	#if BUILD_WITH_CLAY
+	InitClayUIRenderer(stdHeap, V2_Zero, &app->clay);
+	app->clayFontId = AddClayUIRendererFont(&app->clay, &app->debugFont, GetDefaultFontSize(&app->debugFont), GetDefaultFontStyleFlags(&app->debugFont));
+	#endif
 	
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
@@ -338,7 +355,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	bool shouldContinueRunning = true;
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr, appInput);
 	
-	if (IsMouseBtnPressed(&appIn->mouse, MouseBtn_Left) && appIn->mouse.isOverWindow && !appIn->mouse.isLocked)
+	if (IsMouseBtnPressed(&appIn->mouse, MouseBtn_Right) && appIn->mouse.isOverWindow && !appIn->mouse.isLocked)
 	{
 		platform->SetMouseLocked(true);
 	}
@@ -403,7 +420,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	if (IsKeyboardKeyDown(&appIn->keyboard, Key_E)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Up, moveSpeed)); }
 	if (IsKeyboardKeyDown(&appIn->keyboard, Key_Q)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Down, moveSpeed)); }
 	
-	BeginFrame(platform->GetSokolSwapchain(), MonokaiBack, 1.0f);
+	BeginFrame(platform->GetSokolSwapchain(), appIn->screenSize, PalBlueLighter, 1.0f);
 	{
 		// +==============================+
 		// |         3D Rendering         |
@@ -438,9 +455,12 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 					r32 scale = GetRandR32Range(&random, 0.85f, 1.0f);
 					r32 rotation = GetRandR32Range(&random, 0, TwoPi32);
 					v3 modelPos = NewV3(xIndex * 1.5f, 0, yIndex * 1.5f);
+					if (((xIndex + yIndex) % 2) == 0) { SetClipRec(NewReci(appIn->screenSize.Width/4, appIn->screenSize.Height/4, appIn->screenSize.Width/2, appIn->screenSize.Height/2)); }
+					else { DisableClipRec(); }
 					DrawModel(&app->testModel, modelPos, FillV3(scale), ToQuatFromAxis(V3_Up, rotation));
 				}
 			}
+			DisableClipRec();
 			
 			BindTextureAtIndex(&gfx.pixelTexture, 0);
 			BindTextureAtIndex(&gfx.pixelTexture, 1);
@@ -468,6 +488,102 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			
 			rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testTexture.Height, (r32)app->testTexture.Width, (r32)app->testTexture.Height);
 			DrawTexturedRectangle(piggyblobRec, White, &app->testTexture);
+			
+			#if BUILD_WITH_CLAY
+			BeginClayUIRender(&app->clay.clay, ToV2Fromi(appIn->screenSize), 16.6f, appIn->mouse.position, IsMouseBtnDown(&appIn->mouse, MouseBtn_Left), appIn->mouse.scrollDelta);
+			{
+				Clay_Sizing layoutExpand = (Clay_Sizing){ .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) };
+				CLAY({ .id = CLAY_ID("FullscreenContainer"),
+					// .backgroundColor = ToClayColor(Transparent),
+					.layout = {
+						.layoutDirection = CLAY_TOP_TO_BOTTOM,
+						.sizing = layoutExpand,
+						.padding = CLAY_PADDING_ALL(16),
+						.childGap = 16,
+					} })
+				{
+					CLAY({ .id = CLAY_ID("HeaderBar"),
+						.layout = {
+							.sizing = {
+								.height = CLAY_SIZING_FIXED(60),
+								.width = CLAY_SIZING_GROW(0),
+							},
+							.padding = { 16, 16, 0, 0 },
+							.childGap = 16,
+							.childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+						},
+						.backgroundColor = ToClayColor(MonokaiBack),
+						.cornerRadius = CLAY_CORNER_RADIUS(8) })
+					{
+						CLAY({ .id = CLAY_ID("FileButton"),
+							.layout = { .padding = { 16, 16, 8, 8 } },
+							.backgroundColor = ToClayColor(MonokaiGray2),
+							.cornerRadius = CLAY_CORNER_RADIUS(5) })
+						{
+							CLAY_TEXT(CLAY_STRING("File"), CLAY_TEXT_CONFIG({
+								.fontId = app->clayFontId,
+								.fontSize = 16,
+								.textColor = ToClayColor(MonokaiWhite),
+							}));
+							
+							bool fileMenuVisible = (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("FileButton"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("FileMenu"))));
+							if (fileMenuVisible)
+							{
+								CLAY({ .id = CLAY_ID("FileMenu"),
+									.floating = {
+										.attachTo = CLAY_ATTACH_TO_PARENT,
+										.attachPoints = {
+											.parent = CLAY_ATTACH_POINT_LEFT_BOTTOM,
+										},
+									},
+									.layout = {
+										.padding = { 0, 0, 8, 8 },
+									} })
+								{
+									CLAY({
+										.layout = {
+											.layoutDirection = CLAY_TOP_TO_BOTTOM,
+											.sizing = {
+												.width = CLAY_SIZING_FIXED(200),
+											},
+										},
+										.backgroundColor = ToClayColor(MonokaiBack),
+										.cornerRadius = CLAY_CORNER_RADIUS(8) })
+									{
+										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
+										{
+											CLAY_TEXT(CLAY_STRING("New"), CLAY_TEXT_CONFIG({
+												.fontId = app->clayFontId,
+												.fontSize = 16,
+												.textColor = ToClayColor(MonokaiWhite),
+											}));
+										}
+										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
+										{
+											CLAY_TEXT(CLAY_STRING("Open"), CLAY_TEXT_CONFIG({
+												.fontId = app->clayFontId,
+												.fontSize = 16,
+												.textColor = ToClayColor(MonokaiWhite),
+											}));
+										}
+										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
+										{
+											CLAY_TEXT(CLAY_STRING("Close"), CLAY_TEXT_CONFIG({
+												.fontId = app->clayFontId,
+												.fontSize = 16,
+												.textColor = ToClayColor(MonokaiWhite),
+											}));
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			Clay_RenderCommandArray clayRenderCommands = EndClayUIRender(&app->clay.clay);
+			RenderClayCommandArray(&app->clay, &gfx, &clayRenderCommands);
+			#endif //BUILD_WITH_CLAY
 			
 			#if 0
 			r32 atlasPosX = 0;

@@ -20,6 +20,7 @@ Description:
 #include "struct/struct_all.h"
 #include "input/input_all.h"
 #include "file_fmt/file_fmt_all.h"
+#include "ui/ui_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
 
@@ -282,7 +283,7 @@ sapp_desc sokol_main(int argc, char* argv[])
 		.width = 800,
 		.height = 600,
 		.window_title = "Loading...",
-		.icon.sokol_default = true,
+		.icon.sokol_default = false,
 		.logger.func = SokolLogCallback,
 	};
 }

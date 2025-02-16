@@ -46,7 +46,7 @@ Description:
 #define BUILD_PIG_CORE_LIB_IF_NEEDED  1
 
 // Compiles app/platform_main.c to %PROJECT_EXE_NAME%.exe
-#define BUILD_APP_EXE  1
+#define BUILD_APP_EXE  0
 // Compiles app/app_main.c to %PROJECT_DLL_NAME%.dll
 #define BUILD_APP_DLL  1
 // Runs the %PROJECT_EXE_NAME%.exe
@@ -92,5 +92,6 @@ Description:
 #define BUILD_WITH_SOKOL_APP 1
 #define BUILD_WITH_SDL       0
 #define BUILD_WITH_OPENVR    0
+#define BUILD_WITH_CLAY      1
 
 #endif //  _BUILD_CONFIG_H
