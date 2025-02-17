@@ -55,6 +55,7 @@ static Arena* stdHeap = nullptr;
 // |                         Source Files                         |
 // +--------------------------------------------------------------+
 #include "app_helpers.c"
+#include "app_clay_helpers.c"
 
 // +==============================+
 // |           DllMain            |
@@ -138,30 +139,35 @@ void LoadWindowIcon()
 	ScratchEnd(scratch);
 }
 
-void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFlags)
+void RasterizeFontAtSizes(Font* font, Str8 fontName, uxx numSizes, r32* fontSizes, u8 fontStyleFlags)
 {
+	NotNull(fontSizes);
+	Assert(numSizes > 0);
 	ClearFontAtlases(font);
 	
 	// UNUSED(fontName);
 	// AttachTtfFileToFont(font, OsReadBinFileScratch(FilePathLit("consolab.ttf")), fontStyleFlags);
-	Result attachResult = AttachOsTtfFileToFont(font, fontName, fontSize, fontStyleFlags);
+	Result attachResult = AttachOsTtfFileToFont(font, fontName, fontSizes[0], fontStyleFlags);
 	Assert(attachResult == Result_Success);
 	// OsWriteBinFile(FilePathLit("Default.ttf"), font->ttfFile);
 	
-	FontCharRange charRanges[] = {
-		FontCharRange_ASCII,
-		FontCharRange_LatinExt,
-	};
-	Result bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(256, 256), ArrayCount(charRanges), &charRanges[0]);
-	if (bakeResult == Result_NotEnoughSpace)
+	for (uxx bIndex = 0; bIndex < numSizes; bIndex++)
 	{
-		bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(512, 512), ArrayCount(charRanges), &charRanges[0]);
+		FontCharRange charRanges[] = {
+			FontCharRange_ASCII,
+			FontCharRange_LatinExt,
+		};
+		Result bakeResult = BakeFontAtlas(font, fontSizes[bIndex], fontStyleFlags, NewV2i(256, 256), ArrayCount(charRanges), &charRanges[0]);
 		if (bakeResult == Result_NotEnoughSpace)
 		{
-			bakeResult = BakeFontAtlas(font, fontSize, fontStyleFlags, NewV2i(1024, 1024), ArrayCount(charRanges), &charRanges[0]);
+			bakeResult = BakeFontAtlas(font, fontSizes[bIndex], fontStyleFlags, NewV2i(512, 512), ArrayCount(charRanges), &charRanges[0]);
+			if (bakeResult == Result_NotEnoughSpace)
+			{
+				bakeResult = BakeFontAtlas(font, fontSizes[bIndex], fontStyleFlags, NewV2i(1024, 1024), ArrayCount(charRanges), &charRanges[0]);
+			}
 		}
+		Assert(bakeResult == Result_Success);
 	}
-	Assert(bakeResult == Result_Success);
 	
 	FillFontKerningTable(font);
 	#if 0
@@ -202,6 +208,10 @@ void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFl
 	#endif
 	
 	RemoveAttachedTtfFile(font);
+}
+void RasterizeFontAtSize(Font* font, Str8 fontName, r32 fontSize, u8 fontStyleFlags)
+{
+	RasterizeFontAtSizes(font, fontName, 1, &fontSize, fontStyleFlags);
 }
 
 Model3D LoadModel(FilePath filePath)
@@ -321,11 +331,13 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	app->testFont = InitFont(stdHeap, StrLit("testFont"));
 	RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), TEST_FONT_START_SIZE, TEST_FONT_STYLE);
 	app->debugFont = InitFont(stdHeap, StrLit("debugFont"));
-	RasterizeFontAtSize(&app->debugFont, StrLit("Consolas"), 18, FontStyleFlag_Bold);
+	r32 debugFontSizes[] = { 12, 18, 24 };
+	RasterizeFontAtSizes(&app->debugFont, StrLit("Consolas"), ArrayCount(debugFontSizes), &debugFontSizes[0], FontStyleFlag_Bold);
 	
 	#if BUILD_WITH_CLAY
 	InitClayUIRenderer(stdHeap, V2_Zero, &app->clay);
-	app->clayFontId = AddClayUIRendererFont(&app->clay, &app->debugFont, GetDefaultFontSize(&app->debugFont), GetDefaultFontStyleFlags(&app->debugFont));
+	app->clayFont = AddClayUIRendererFont(&app->clay, &app->debugFont, GetDefaultFontStyleFlags(&app->debugFont));
+	// Clay_SetDebugModeEnabled(true);
 	#endif
 	
 	app->spherePos = V3_Zero;
@@ -493,91 +505,35 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			BeginClayUIRender(&app->clay.clay, ToV2Fromi(appIn->screenSize), 16.6f, appIn->mouse.position, IsMouseBtnDown(&appIn->mouse, MouseBtn_Left), appIn->mouse.scrollDelta);
 			{
 				Clay_Sizing layoutExpand = (Clay_Sizing){ .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) };
-				CLAY({ .id = CLAY_ID("FullscreenContainer"),
-					// .backgroundColor = ToClayColor(Transparent),
-					.layout = {
-						.layoutDirection = CLAY_TOP_TO_BOTTOM,
-						.sizing = layoutExpand,
-						.padding = CLAY_PADDING_ALL(16),
-						.childGap = 16,
-					} })
+				CLAY(ClayFullscreenContainer("FullscreenContainer"))
 				{
-					CLAY({ .id = CLAY_ID("HeaderBar"),
-						.layout = {
-							.sizing = {
-								.height = CLAY_SIZING_FIXED(60),
-								.width = CLAY_SIZING_GROW(0),
-							},
-							.padding = { 16, 16, 0, 0 },
-							.childGap = 16,
-							.childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
-						},
-						.backgroundColor = ToClayColor(MonokaiBack),
-						.cornerRadius = CLAY_CORNER_RADIUS(8) })
+					CLAY(ClayTopbar("Topbar", 26, MonokaiBack))
 					{
-						CLAY({ .id = CLAY_ID("FileButton"),
-							.layout = { .padding = { 16, 16, 8, 8 } },
-							.backgroundColor = ToClayColor(MonokaiGray2),
-							.cornerRadius = CLAY_CORNER_RADIUS(5) })
+						if (ClayTopBtn("File", MonokaiGray1, MonokaiWhite))
 						{
-							CLAY_TEXT(CLAY_STRING("File"), CLAY_TEXT_CONFIG({
-								.fontId = app->clayFontId,
-								.fontSize = 16,
-								.textColor = ToClayColor(MonokaiWhite),
-							}));
-							
-							bool fileMenuVisible = (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("FileButton"))) || Clay_PointerOver(Clay_GetElementId(CLAY_STRING("FileMenu"))));
-							if (fileMenuVisible)
+							if (ClayBtn("New", Transparent, MonokaiWhite))
 							{
-								CLAY({ .id = CLAY_ID("FileMenu"),
-									.floating = {
-										.attachTo = CLAY_ATTACH_TO_PARENT,
-										.attachPoints = {
-											.parent = CLAY_ATTACH_POINT_LEFT_BOTTOM,
-										},
-									},
-									.layout = {
-										.padding = { 0, 0, 8, 8 },
-									} })
-								{
-									CLAY({
-										.layout = {
-											.layoutDirection = CLAY_TOP_TO_BOTTOM,
-											.sizing = {
-												.width = CLAY_SIZING_FIXED(200),
-											},
-										},
-										.backgroundColor = ToClayColor(MonokaiBack),
-										.cornerRadius = CLAY_CORNER_RADIUS(8) })
-									{
-										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
-										{
-											CLAY_TEXT(CLAY_STRING("New"), CLAY_TEXT_CONFIG({
-												.fontId = app->clayFontId,
-												.fontSize = 16,
-												.textColor = ToClayColor(MonokaiWhite),
-											}));
-										}
-										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
-										{
-											CLAY_TEXT(CLAY_STRING("Open"), CLAY_TEXT_CONFIG({
-												.fontId = app->clayFontId,
-												.fontSize = 16,
-												.textColor = ToClayColor(MonokaiWhite),
-											}));
-										}
-										CLAY({.layout = { .padding = CLAY_PADDING_ALL(16) } })
-										{
-											CLAY_TEXT(CLAY_STRING("Close"), CLAY_TEXT_CONFIG({
-												.fontId = app->clayFontId,
-												.fontSize = 16,
-												.textColor = ToClayColor(MonokaiWhite),
-											}));
-										}
-									}
-								}
-							}
-						}
+								WriteLine_D("User clicked \"New\"!");
+							} Clay__CloseElement();
+							
+							if (ClayBtn("Open", Transparent, MonokaiWhite))
+							{
+								WriteLine_D("User clicked \"Open\"!");
+							} Clay__CloseElement();
+							
+							if (ClayBtn("Close", Transparent, MonokaiWhite))
+							{
+								WriteLine_D("User clicked \"Close\"!");
+							} Clay__CloseElement();
+							
+							if (ClayBtn("Debug", Transparent, MonokaiWhite))
+							{
+								Clay_SetDebugModeEnabled(!Clay_IsDebugModeEnabled());
+							} Clay__CloseElement();
+							
+							Clay__CloseElement();
+							Clay__CloseElement();
+						} Clay__CloseElement();
 					}
 				}
 			}

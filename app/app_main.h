@@ -22,7 +22,7 @@ struct AppData
 	
 	#if BUILD_WITH_CLAY
 	ClayUIRenderer clay;
-	u16 clayFontId;
+	u16 clayFont;
 	#endif
 	
 	sg_pass_action sokolPassAction;
