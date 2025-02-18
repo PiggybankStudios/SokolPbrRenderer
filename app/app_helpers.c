@@ -6,6 +6,7 @@ Description:
 	** Contains various helper functions that don't have a home elsewhere
 */
 
+#if FP3D_SCENE_ENABLED
 void DrawBox(box boundingBox, Color32 color)
 {
 	mat4 worldMat = Mat4_Identity;
@@ -73,3 +74,4 @@ void DrawModel(Model3D* model, v3 position, v3 scale, quat rotation)
 		DrawVertices();
 	}
 }
+#endif //FP3D_SCENE_ENABLED

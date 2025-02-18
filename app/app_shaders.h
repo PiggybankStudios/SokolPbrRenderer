@@ -7,5 +7,7 @@ Description:
 */
 
 #include "main2d_shader.glsl.h"
+#if FP3D_SCENE_ENABLED
 #include "main3d_shader.glsl.h"
 #include "pbr_shader.glsl.h"
+#endif //FP3D_SCENE_ENABLED

@@ -121,6 +121,7 @@ void LoadWindowIcon()
 	ScratchBegin(scratch);
 	ImageData iconImageDatas[6];
 	#if 1
+	#if LOAD_FROM_RESOURCES_FOLDER
 	iconImageDatas[0] = LoadImageData(scratch, "resources/image/icon_16.png");
 	iconImageDatas[1] = LoadImageData(scratch, "resources/image/icon_24.png");
 	iconImageDatas[2] = LoadImageData(scratch, "resources/image/icon_32.png");
@@ -134,6 +135,7 @@ void LoadWindowIcon()
 	iconImageDatas[3] = LoadImageData(scratch, "icon_64.png");
 	iconImageDatas[4] = LoadImageData(scratch, "icon_120.png");
 	iconImageDatas[5] = LoadImageData(scratch, "icon_256.png");
+	#endif
 	#endif
 	platform->SetWindowIcon(ArrayCount(iconImageDatas), &iconImageDatas[0]);
 	ScratchEnd(scratch);
@@ -265,32 +267,33 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	platform->SetWindowTitle(StrLit("Sokol PBR"));
 	LoadWindowIcon();
 	
-	#if 1
-	GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);
-	#else
-	Color32 cubeSideColors[BOX_NUM_FACES] = { MonokaiWhite, MonokaiRed, MonokaiBlue, MonokaiOrange, MonokaiGreen, MonokaiYellow };
-	GeneratedMesh cubeMesh = GenerateVertsForBoxEx(scratch, NewBoxV(V3_Zero, V3_One), &cubeSideColors[0]);
-	#endif
-	Vertex3D* cubeVertices = AllocArray(Vertex3D, scratch, cubeMesh.numIndices);
-	for (uxx iIndex = 0; iIndex < cubeMesh.numIndices; iIndex++)
+	#if FP3D_SCENE_ENABLED
 	{
-		MyMemCopy(&cubeVertices[iIndex], &cubeMesh.vertices[cubeMesh.indices[iIndex]], sizeof(Vertex3D));
+		GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);
+		Vertex3D* cubeVertices = AllocArray(Vertex3D, scratch, cubeMesh.numIndices);
+		for (uxx iIndex = 0; iIndex < cubeMesh.numIndices; iIndex++)
+		{
+			MyMemCopy(&cubeVertices[iIndex], &cubeMesh.vertices[cubeMesh.indices[iIndex]], sizeof(Vertex3D));
+		}
+		app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, cubeMesh.numIndices, cubeVertices, false);
+		Assert(app->cubeBuffer.error == Result_Success);
+		
+		GeneratedMesh sphereMesh = GenerateVertsForSphere(scratch, NewSphereV(V3_Zero, 1.0f), 12, 20, White);
+		Vertex3D* sphereVertices = AllocArray(Vertex3D, scratch, sphereMesh.numIndices);
+		for (uxx iIndex = 0; iIndex < sphereMesh.numIndices; iIndex++)
+		{
+			MyMemCopy(&sphereVertices[iIndex], &sphereMesh.vertices[sphereMesh.indices[iIndex]], sizeof(Vertex3D));
+		}
+		app->sphereBuffer = InitVertBuffer3D(stdHeap, StrLit("sphere"), VertBufferUsage_Static, sphereMesh.numIndices, sphereVertices, false);
+		Assert(app->sphereBuffer.error == Result_Success);
 	}
-	app->cubeBuffer = InitVertBuffer3D(stdHeap, StrLit("cube"), VertBufferUsage_Static, cubeMesh.numIndices, cubeVertices, false);
-	Assert(app->cubeBuffer.error == Result_Success);
-	
-	GeneratedMesh sphereMesh = GenerateVertsForSphere(scratch, NewSphereV(V3_Zero, 1.0f), 12, 20, White);
-	Vertex3D* sphereVertices = AllocArray(Vertex3D, scratch, sphereMesh.numIndices);
-	for (uxx iIndex = 0; iIndex < sphereMesh.numIndices; iIndex++)
-	{
-		MyMemCopy(&sphereVertices[iIndex], &sphereMesh.vertices[sphereMesh.indices[iIndex]], sizeof(Vertex3D));
-	}
-	app->sphereBuffer = InitVertBuffer3D(stdHeap, StrLit("sphere"), VertBufferUsage_Static, sphereMesh.numIndices, sphereVertices, false);
-	Assert(app->sphereBuffer.error == Result_Success);
+	#endif //FP3D_SCENE_ENABLED
 	
 	InitCompiledShader(&app->main2dShader, stdHeap, main2d); Assert(app->main2dShader.error == Result_Success);
+	#if FP3D_SCENE_ENABLED
 	InitCompiledShader(&app->main3dShader, stdHeap, main3d); Assert(app->main3dShader.error == Result_Success);
 	InitCompiledShader(&app->pbrShader, stdHeap, pbr); Assert(app->pbrShader.error == Result_Success);
+	#endif //FP3D_SCENE_ENABLED
 	
 	#if 0
 	PrintLine_D("pbrShader has %llu image%s", app->pbrShader.numImages, Plural(app->pbrShader.numImages, "s"));
@@ -307,24 +310,30 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	}
 	#endif
 	
-	#if 1
-	app->testTexture = LoadTexture(stdHeap, "resources/image/piggyblob.png");
+	#if LOAD_FROM_RESOURCES_FOLDER
+	// app->testSprite = LoadTexture(stdHeap, "resources/image/piggyblob.png");
+	app->testTexturePink = LoadTexture(stdHeap, "resources/image/checker_pink.png");
+	app->testTextureBlue = LoadTexture(stdHeap, "resources/image/checker_blue.png");
+	#if FP3D_SCENE_ENABLED
 	// app->albedoTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Base_Color.png");
 	// app->normalTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Normal_OpenGL.png");
 	// app->metallicTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Metallic.png");
 	// app->roughnessTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Roughness.png");
 	// app->occlusionTexture = LoadTexture(stdHeap, "resources/model/fire_hydrant/fire_hydrant_Mixed_AO.png");
-	// app->testModel = LoadModel(FilePathLit("resources/model/fire_hydrant/fire_hydrant.gltf"));
-	// app->testModel = LoadModel(FilePathLit("resources/model/fire_hydrant2/fire_hydrant_extern.gltf"));
 	app->testModel = LoadModel(FilePathLit("resources/model/chest/chest.gltf"));
+	#endif //FP3D_SCENE_ENABLED
 	#else
-	app->testTexture = LoadTexture(stdHeap, "piggyblob.png");
+	// app->testSprite = LoadTexture(stdHeap, "piggyblob.png");
+	app->testTexturePink = LoadTexture(stdHeap, "checker_pink.png");
+	app->testTextureBlue = LoadTexture(stdHeap, "checker_blue.png");
+	#if FP3D_SCENE_ENABLED
 	// app->albedoTexture = LoadTexture(stdHeap, "fire_hydrant_Base_Color.png");
 	// app->normalTexture = LoadTexture(stdHeap, "fire_hydrant_Normal_OpenGL.png");
 	// app->metallicTexture = LoadTexture(stdHeap, "fire_hydrant_Metallic.png");
 	// app->roughnessTexture = LoadTexture(stdHeap, "fire_hydrant_Roughness.png");
 	// app->occlusionTexture = LoadTexture(stdHeap, "fire_hydrant_Mixed_AO.png");
 	app->testModel = LoadModel(FilePathLit("chest.gltf"));
+	#endif //FP3D_SCENE_ENABLED
 	#endif
 	// app->occlusionTexture = LoadTexture(stdHeap, "test_texture.png");
 	
@@ -340,6 +349,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	// Clay_SetDebugModeEnabled(true);
 	#endif
 	
+	#if FP3D_SCENE_ENABLED
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
 	
@@ -347,6 +357,14 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
 	
 	app->lightPos = NewV3(-0.5f, 0.8f, 3);
+	#endif //FP3D_SCENE_ENABLED
+	
+	app->roundedBorderThickness = 30.0f;
+	app->ringThickness = 30.0f;
+	app->roundedBorderTestEnabled = true;
+	app->ringTestEnabled = true;
+	app->horizontalGuidesEnabled = true;
+	app->verticalGuidesEnabled = true;
 	
 	app->initialized = true;
 	ScratchEnd(scratch);
@@ -366,15 +384,33 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	ScratchBegin2(scratch3, scratch, scratch2);
 	bool shouldContinueRunning = true;
 	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr, appInput);
+	v2 screenSize = ToV2Fromi(appIn->screenSize);
+	v2 screenCenter = Div(screenSize, 2.0f);
+	v2 mousePos = appIn->mouse.position;
+	rec mouseLerpRec = NewRec(
+		MOUSE_LERP_WINDOW_PADDING,
+		CLAY_TOPBAR_HEIGHT + MOUSE_LERP_WINDOW_PADDING,
+		screenSize.Width - 2*MOUSE_LERP_WINDOW_PADDING,
+		screenSize.Height - (2*MOUSE_LERP_WINDOW_PADDING + CLAY_TOPBAR_HEIGHT)
+	);
+	r32 mouseLerpX = ClampR32(InverseLerpR32(mouseLerpRec.X, mouseLerpRec.X + mouseLerpRec.Width, mousePos.X), 0.0f, 1.0f);
+	r32 mouseLerpY = ClampR32(InverseLerpR32(mouseLerpRec.Y, mouseLerpRec.Y + mouseLerpRec.Height, mousePos.Y), 0.0f, 1.0f);
 	
-	if (IsMouseBtnPressed(&appIn->mouse, MouseBtn_Right) && appIn->mouse.isOverWindow && !appIn->mouse.isLocked)
+	#if FP3D_SCENE_ENABLED
+	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_R))
 	{
-		platform->SetMouseLocked(true);
+		app->cameraPos = NewV3(3, 0.5f, 2);
+		app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+	}
+	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_F))
+	{
+		platform->SetMouseLocked(!appIn->mouse.isLocked);
 	}
 	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Escape) && appIn->mouse.isLocked)
 	{
 		platform->SetMouseLocked(false);
 	}
+	#endif FP3D_SCENE_ENABLED
 	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Plus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
 	{
 		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
@@ -403,40 +439,45 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		app->textMeasure = MeasureText(&app->testFont, app->text);
 	}
 	
-	if (appIn->mouse.isLocked)
+	#if FP3D_SCENE_ENABLED
 	{
-		r32 cameraHoriRot = AtanR32(app->cameraLookDir.Z, app->cameraLookDir.X);
-		r32 cameraVertRot = AtanR32(app->cameraLookDir.Y, Length(NewV2(app->cameraLookDir.X, app->cameraLookDir.Z)));
-		cameraHoriRot = AngleFixR32(cameraHoriRot - appIn->mouse.lockedPosDelta.X / 500.0f);
-		cameraVertRot = ClampR32(cameraVertRot - appIn->mouse.lockedPosDelta.Y / 500.0f, -HalfPi32+0.05f, HalfPi32-0.05f);
-		r32 horizontalRadius = CosR32(cameraVertRot);
-		app->cameraLookDir = NewV3(CosR32(cameraHoriRot) * horizontalRadius, SinR32(cameraVertRot), SinR32(cameraHoriRot) * horizontalRadius);
+		if (appIn->mouse.isLocked)
+		{
+			r32 cameraHoriRot = AtanR32(app->cameraLookDir.Z, app->cameraLookDir.X);
+			r32 cameraVertRot = AtanR32(app->cameraLookDir.Y, Length(NewV2(app->cameraLookDir.X, app->cameraLookDir.Z)));
+			cameraHoriRot = AngleFixR32(cameraHoriRot - appIn->mouse.lockedPosDelta.X / 500.0f);
+			cameraVertRot = ClampR32(cameraVertRot - appIn->mouse.lockedPosDelta.Y / 500.0f, -HalfPi32+0.05f, HalfPi32-0.05f);
+			r32 horizontalRadius = CosR32(cameraVertRot);
+			app->cameraLookDir = NewV3(CosR32(cameraHoriRot) * horizontalRadius, SinR32(cameraVertRot), SinR32(cameraHoriRot) * horizontalRadius);
+		}
+		#if 0
+		else
+		{
+			r32 angle = OscillateBy(appIn->programTime, 0, TwoPi32, 5000, 0);
+			r32 height = OscillateBy(appIn->programTime, -1.0f, 1.0f, 13000, 0);
+			app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
+			app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+		}
+		#endif
+		
+		v3 horizontalForwardVec = Normalize(NewV3(app->cameraLookDir.X, 0.0f, app->cameraLookDir.Z));
+		v3 horizontalRightVec = Normalize(NewV3(app->cameraLookDir.Z, 0.0f, -app->cameraLookDir.X));
+		const r32 moveSpeed = IsKeyboardKeyDown(&appIn->keyboard, Key_Shift) ? 0.08f : 0.02f;
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_W)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, moveSpeed)); }
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_A)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, -moveSpeed)); }
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_S)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, -moveSpeed)); }
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_D)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, moveSpeed)); }
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_E)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Up, moveSpeed)); }
+		if (IsKeyboardKeyDown(&appIn->keyboard, Key_Q)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Down, moveSpeed)); }
 	}
-	#if 0
-	else
-	{
-		r32 angle = OscillateBy(appIn->programTime, 0, TwoPi32, 5000, 0);
-		r32 height = OscillateBy(appIn->programTime, -1.0f, 1.0f, 13000, 0);
-		app->cameraPos = Add(app->spherePos, NewV3(CosR32(angle) * 4.5f, height, SinR32(angle) * 4.5f));
-		app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
-	}
-	#endif
+	#endif //FP3D_SCENE_ENABLED
 	
-	v3 horizontalForwardVec = Normalize(NewV3(app->cameraLookDir.X, 0.0f, app->cameraLookDir.Z));
-	v3 horizontalRightVec = Normalize(NewV3(app->cameraLookDir.Z, 0.0f, -app->cameraLookDir.X));
-	const r32 moveSpeed = IsKeyboardKeyDown(&appIn->keyboard, Key_Shift) ? 0.08f : 0.02f;
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_W)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, moveSpeed)); }
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_A)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, -moveSpeed)); }
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_S)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalForwardVec, -moveSpeed)); }
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_D)) { app->cameraPos = Add(app->cameraPos, Mul(horizontalRightVec, moveSpeed)); }
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_E)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Up, moveSpeed)); }
-	if (IsKeyboardKeyDown(&appIn->keyboard, Key_Q)) { app->cameraPos = Add(app->cameraPos, Mul(V3_Down, moveSpeed)); }
-	
-	BeginFrame(platform->GetSokolSwapchain(), appIn->screenSize, PalBlueLighter, 1.0f);
+	BeginFrame(platform->GetSokolSwapchain(), appIn->screenSize, PalBlueLight, 1.0f);
 	{
 		// +==============================+
 		// |         3D Rendering         |
 		// +==============================+
+		#if FP3D_SCENE_ENABLED
 		{
 			// BindShader(&app->main3dShader);
 			BindShader(&app->pbrShader);
@@ -467,7 +508,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 					r32 scale = GetRandR32Range(&random, 0.85f, 1.0f);
 					r32 rotation = GetRandR32Range(&random, 0, TwoPi32);
 					v3 modelPos = NewV3(xIndex * 1.5f, 0, yIndex * 1.5f);
-					if (((xIndex + yIndex) % 2) == 0) { SetClipRec(NewReci(appIn->screenSize.Width/4, appIn->screenSize.Height/4, appIn->screenSize.Width/2, appIn->screenSize.Height/2)); }
+					if (app->scissorTestEnabled && ((xIndex + yIndex) % 2) == 0) { SetClipRec(NewReci(appIn->screenSize.Width/4, appIn->screenSize.Height/4, appIn->screenSize.Width/2, appIn->screenSize.Height/2)); }
 					else { DisableClipRec(); }
 					DrawModel(&app->testModel, modelPos, FillV3(scale), ToQuatFromAxis(V3_Up, rotation));
 				}
@@ -481,6 +522,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			BindTextureAtIndex(&gfx.pixelTexture, 4);
 			DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
 		}
+		#endif //FP3D_SCENE_ENABLED
 		
 		// +==============================+
 		// |         2D Rendering         |
@@ -498,35 +540,196 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			
 			// DrawRectangle(NewRec(10, 10, 200, 80), MonokaiPurple);
 			
-			rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testTexture.Height, (r32)app->testTexture.Width, (r32)app->testTexture.Height);
-			DrawTexturedRectangle(piggyblobRec, White, &app->testTexture);
+			// rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testSprite.Height, (r32)app->testSprite.Width, (r32)app->testSprite.Height);
+			// DrawTexturedRectangle(piggyblobRec, White, &app->testSprite);
+			
+			if (app->horizontalGuidesEnabled)
+			{
+				for (uxx bIndex = 0; bIndex <= GFX_SYSTEM_CIRCLE_NUM_SIDES; bIndex++)
+				{
+					rec barRec = NewRec(mouseLerpRec.X + bIndex * (mouseLerpRec.Width / GFX_SYSTEM_CIRCLE_NUM_SIDES), mouseLerpRec.Y, 1, mouseLerpRec.Height);
+					DrawRectangle(barRec, PalBlueDarker);
+				}
+				
+				if (app->borderThicknessTestEnabled ||
+					app->roundedRecTestEnabled ||
+					app->roundedBorderTestEnabled ||
+					app->circleTestEnabled ||
+					app->ringTestEnabled)
+				{
+					rec guideRec = NewRec(ClampR32(mousePos.X, mouseLerpRec.X, mouseLerpRec.X + mouseLerpRec.Width), mouseLerpRec.Y, 1, mouseLerpRec.Height);
+					DrawRectangle(guideRec, MonokaiRed);
+					BindFontAtSize(&app->debugFont, 12);
+					Str8 displayStr = ScratchPrintStr("X: %.1f%%", mouseLerpX*100.0f);
+					v2 displayStrPos = NewV2(guideRec.X + (mouseLerpX >= 0.5f ? -58 : 5), guideRec.Y + guideRec.Height - 30);
+					DrawText(displayStr, Add(displayStrPos, NewV2(0, 2)), Black);
+					DrawText(displayStr, displayStrPos, MonokaiRed);
+				}
+			}
+			if (app->verticalGuidesEnabled)
+			{
+				for (uxx bIndex = 0; bIndex <= GFX_SYSTEM_CIRCLE_NUM_SIDES; bIndex++)
+				{
+					rec barRec = NewRec(mouseLerpRec.X, mouseLerpRec.Y + bIndex * (mouseLerpRec.Height / GFX_SYSTEM_CIRCLE_NUM_SIDES), mouseLerpRec.Width, 1);
+					DrawRectangle(barRec, PalBlueDarker);
+				}
+				
+				if (app->borderThicknessTestEnabled ||
+					app->roundedRecTestEnabled ||
+					app->roundedBorderTestEnabled)
+				{
+					rec guideRec = NewRec(mouseLerpRec.X, ClampR32(mousePos.Y, mouseLerpRec.Y, mouseLerpRec.Y + mouseLerpRec.Height), mouseLerpRec.Width, 1);
+					DrawRectangle(guideRec, MonokaiGreen);
+					BindFontAtSize(&app->debugFont, 12);
+					Str8 displayStr = ScratchPrintStr("Y: %.1f%%", mouseLerpY*100.0f);
+					v2 displayStrPos = NewV2(guideRec.X + guideRec.Width - 50, guideRec.Y + (mouseLerpY >= 0.5f ? -8 : 20));
+					DrawText(displayStr, Add(displayStrPos, NewV2(0, 2)), Black);
+					DrawText(displayStr, displayStrPos, MonokaiGreen);
+				}
+			}
+			
+			if (app->borderThicknessTestEnabled)
+			{
+				rec drawRec = NewRecCenteredV(screenCenter, NewV2(250, 200));
+				rec sourceRec = NewRecV(V2_Zero, ToV2Fromi(app->testTexturePink.size));
+				r32 leftThickness = LerpR32(0, 50, mouseLerpX);
+				r32 rightThickness = LerpR32(100, 0, mouseLerpX);
+				r32 topThickness = LerpR32(0, 50, mouseLerpY);
+				r32 bottomThickness = LerpR32(100, 0, mouseLerpY);
+				DrawTexturedRectangleOutlineSidesEx(drawRec, leftThickness, 0, 0, 0, White, false, &app->testTexturePink, sourceRec);
+				DrawTexturedRectangleOutlineSidesEx(drawRec, 0, rightThickness, 0, 0, White, false, &app->testTexturePink, sourceRec);
+				DrawTexturedRectangleOutlineSidesEx(drawRec, 0, 0, topThickness, 0, White, false, &app->testTextureBlue, sourceRec);
+				DrawTexturedRectangleOutlineSidesEx(drawRec, 0, 0, 0, bottomThickness, White, false, &app->testTextureBlue, sourceRec);
+			}
+			
+			if (app->roundedRecTestEnabled)
+			{
+				DrawTexturedRoundedRectangleEx(
+					NewRecCenteredV(screenCenter, NewV2(400, 300)),
+					LerpR32(0, 200, mouseLerpX), //radiusTL
+					LerpR32(0, 200, mouseLerpY), //radiusTR
+					LerpR32(0, 200, mouseLerpX), //radiusBR
+					LerpR32(0, 200, mouseLerpY), //radiusBL
+					White,
+					&app->testTextureBlue,
+					NewRecV(V2_Zero, ToV2Fromi(app->testTextureBlue.size))
+				);
+			}
+			
+			if (app->roundedBorderTestEnabled)
+			{
+				// #define DrawTexturedRoundedRectangleOutlineEx(rectangle, thickness, radiusTL, radiusTR, radiusBR, radiusBL, color, outside, texture, sourceRec)
+				DrawTexturedRoundedRectangleOutlineEx(
+					NewRecCenteredV(screenCenter, NewV2(500, 400)),
+					app->roundedBorderThickness, //thickness
+					LerpR32(0, 200, mouseLerpX), //radiusTL
+					LerpR32(0, 200, mouseLerpY), //radiusTR
+					LerpR32(0, 200, mouseLerpX), //radiusBR
+					LerpR32(0, 200, mouseLerpY), //radiusBL
+					White,
+					false, //outside
+					&app->testTextureBlue,
+					NewRecV(V2_Zero, ToV2Fromi(app->testTextureBlue.size))
+				);
+			}
+			if (app->circleTestEnabled && mouseLerpX > 0)
+			{
+				DrawTexturedCirclePiece(
+					NewCircleV(screenCenter, 60),
+					app->circlePieceAngleOffset,
+					LerpR32(0, TwoPi32, mouseLerpX) + app->circlePieceAngleOffset,
+					White,
+					&app->testTexturePink
+				);
+			}
+			if (app->ringTestEnabled && mouseLerpX > 0)
+			{
+				DrawTexturedRingPiece(
+					NewCircleV(screenCenter, 100),
+					app->ringThickness,
+					app->ringPieceAngleOffset,
+					LerpR32(0, TwoPi32, mouseLerpX) + app->ringPieceAngleOffset,
+					White,
+					&app->testTexturePink
+				);
+			}
 			
 			#if BUILD_WITH_CLAY
 			BeginClayUIRender(&app->clay.clay, ToV2Fromi(appIn->screenSize), 16.6f, appIn->mouse.position, IsMouseBtnDown(&appIn->mouse, MouseBtn_Left), appIn->mouse.scrollDelta);
 			{
-				Clay_Sizing layoutExpand = (Clay_Sizing){ .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) };
 				CLAY(ClayFullscreenContainer("FullscreenContainer"))
 				{
-					CLAY(ClayTopbar("Topbar", 26, MonokaiBack))
+					CLAY(ClayTopbar("Topbar", CLAY_TOPBAR_HEIGHT, MonokaiBack))
 					{
-						if (ClayTopBtn("File", MonokaiGray1, MonokaiWhite))
+						CLAY({ .layout = { .sizing = { .width=CLAY_SIZING_FIXED(4) } } }){}
+						
+						if (ClayTopBtn("Debug", &app->topbarDebugMenuOpen, MonokaiBack, MonokaiWhite, 340))
 						{
-							if (ClayBtn("New", Transparent, MonokaiWhite))
+							if (ClayBtn(ScratchPrint("%s Border Thickness", app->borderThicknessTestEnabled ? "Disable" : "Enable"), Transparent, app->borderThicknessTestEnabled ? MonokaiGreen : MonokaiWhite))
 							{
-								WriteLine_D("User clicked \"New\"!");
+								app->borderThicknessTestEnabled = !app->borderThicknessTestEnabled;
 							} Clay__CloseElement();
 							
-							if (ClayBtn("Open", Transparent, MonokaiWhite))
+							if (ClayBtn(ScratchPrint("%s Rounded Rectangle", app->roundedRecTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedRecTestEnabled ? MonokaiGreen : MonokaiWhite))
 							{
-								WriteLine_D("User clicked \"Open\"!");
+								app->roundedRecTestEnabled = !app->roundedRecTestEnabled;
 							} Clay__CloseElement();
 							
-							if (ClayBtn("Close", Transparent, MonokaiWhite))
+							if (ClayBtn(ScratchPrint("%s Rounded Rectangle Border", app->roundedBorderTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedBorderTestEnabled ? MonokaiGreen : MonokaiWhite))
 							{
-								WriteLine_D("User clicked \"Close\"!");
+								app->roundedBorderTestEnabled = !app->roundedBorderTestEnabled;
+							} Clay__CloseElement();
+							if (app->roundedBorderTestEnabled)
+							{
+								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+								{
+									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+									ClayLabeledSlider("Border Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->roundedBorderThickness, 1, 100, 180, 20, Black, MonokaiGray1);
+								}
+							}
+							
+							if (ClayBtn(ScratchPrint("%s Circle", app->circleTestEnabled ? "Disable" : "Enable"), Transparent, app->circleTestEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->circleTestEnabled = !app->circleTestEnabled;
+							} Clay__CloseElement();
+							if (app->circleTestEnabled)
+							{
+								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+								{
+									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+									ClayLabeledSlider("Circle Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->circlePieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
+								}
+							}
+							
+							if (ClayBtn(ScratchPrint("%s Ring", app->ringTestEnabled ? "Disable" : "Enable"), Transparent, app->ringTestEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->ringTestEnabled = !app->ringTestEnabled;
+							} Clay__CloseElement();
+							if (app->ringTestEnabled)
+							{
+								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+								{
+									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+									ClayLabeledSlider("Ring Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->ringPieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
+								}
+								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+								{
+									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+									ClayLabeledSlider("Ring Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->ringThickness, 1, 100, 180, 20, Black, MonokaiGray1);
+								}
+							}
+							
+							if (ClayBtn(ScratchPrint("%s Horizontal Guides", app->horizontalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->horizontalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->horizontalGuidesEnabled = !app->horizontalGuidesEnabled;
 							} Clay__CloseElement();
 							
-							if (ClayBtn("Debug", Transparent, MonokaiWhite))
+							if (ClayBtn(ScratchPrint("%s Vertical Guides", app->verticalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->verticalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->verticalGuidesEnabled = !app->verticalGuidesEnabled;
+							} Clay__CloseElement();
+							
+							if (ClayBtn(ScratchPrint("%s Clay UI Debug", Clay_IsDebugModeEnabled() ? "Hide" : "Show"), Transparent, Clay_IsDebugModeEnabled() ? MonokaiGreen : MonokaiWhite))
 							{
 								Clay_SetDebugModeEnabled(!Clay_IsDebugModeEnabled());
 							} Clay__CloseElement();
@@ -534,7 +737,42 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 							Clay__CloseElement();
 							Clay__CloseElement();
 						} Clay__CloseElement();
+						
+						#if FP3D_SCENE_ENABLED
+						if (ClayTopBtn("Camera", &app->topbarCameraMenuOpen, MonokaiBack, MonokaiWhite, 200))
+						{
+							if (ClayBtn("Reset (R)", Transparent, MonokaiWhite))
+							{
+								app->cameraPos = NewV3(3, 0.5f, 2);
+								app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+							} Clay__CloseElement();
+							
+							if (ClayBtn(ScratchPrint("%s Scissor", app->scissorTestEnabled ? "Disable" : "Enable"), Transparent, app->scissorTestEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->scissorTestEnabled = !app->scissorTestEnabled;
+							} Clay__CloseElement();
+							
+							if (ClayBtn("Capture Mouse (F)", Transparent, MonokaiWhite))
+							{
+								platform->SetMouseLocked(true);
+							} Clay__CloseElement();
+							
+							Clay__CloseElement();
+							Clay__CloseElement();
+						} Clay__CloseElement();
+						#endif //FP3D_SCENE_ENABLED
 					}
+					
+					CLAY({ .layout = { .sizing = { .height=CLAY_SIZING_GROW(0) } } }){}
+					
+					#if FP3D_SCENE_ENABLED
+					Str8 statusText = ScratchPrintStr("WASD=Move Camera     QE=Up/Down     %s     R=Reset",
+						appIn->mouse.isLocked ? "(Press ESC to Release Mouse)" : "F=Capture Mouse"
+					);
+					#else
+					Str8 statusText = StrLit("Move your mouse!");
+					#endif
+					ClayTextStr(statusText, app->clayFont, 18, Black);
 				}
 			}
 			Clay_RenderCommandArray clayRenderCommands = EndClayUIRender(&app->clay.clay);

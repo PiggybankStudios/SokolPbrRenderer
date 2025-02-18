@@ -21,7 +21,7 @@ Description:
 // Build the WASM binary for operating as a webpage
 #define BUILD_WEB     0
 // Runs the sokol-shdc.exe on all .glsl files in the source directory to produce .glsl.h and .glsl.c files and then compiles the .glsl.c files to .obj
-#define BUILD_SHADERS 0
+#define BUILD_SHADERS 1
 // Builds the bullet_main.cpp in C++ mode into bullet.lib which can then be linked into the platform layer
 #define BUILD_BULLET  0
 
@@ -41,7 +41,7 @@ Description:
 #define BUILD_INTO_SINGLE_UNIT  0
 
 // Compiles piggen/main.c to either dynamic or static library
-#define BUILD_PIG_CORE_LIB            1
+#define BUILD_PIG_CORE_LIB            0
 // Same as above but only compiles if the dll doesn't already exist in the _build folder
 #define BUILD_PIG_CORE_LIB_IF_NEEDED  1
 

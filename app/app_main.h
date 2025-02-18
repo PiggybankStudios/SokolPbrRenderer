@@ -27,21 +27,29 @@ struct AppData
 	
 	sg_pass_action sokolPassAction;
 	Shader main2dShader;
+	#if FP3D_SCENE_ENABLED
 	Shader main3dShader;
 	Shader pbrShader;
+	#endif
 	
 	VertBuffer squareBuffer;
+	#if FP3D_SCENE_ENABLED
 	VertBuffer cubeBuffer;
 	VertBuffer sphereBuffer;
+	#endif
 	
-	Texture testTexture;
+	Texture testSprite;
+	Texture testTexturePink;
+	Texture testTextureBlue;
+	
+	#if FP3D_SCENE_ENABLED
 	Texture albedoTexture;
 	Texture normalTexture;
 	Texture metallicTexture;
 	Texture roughnessTexture;
 	Texture occlusionTexture;
-	
 	Model3D testModel;
+	#endif //FP3D_SCENE_ENABLED
 	
 	Font testFont;
 	Font debugFont;
@@ -50,6 +58,7 @@ struct AppData
 	TextMeasure textMeasure;
 	TextLayout textLayout;
 	
+	#if FP3D_SCENE_ENABLED
 	v3 spherePos;
 	r32 sphereRadius;
 	
@@ -57,6 +66,22 @@ struct AppData
 	v3 cameraLookDir;
 	
 	v3 lightPos;
+	#endif
+	
+	bool topbarDebugMenuOpen;
+	bool topbarCameraMenuOpen;
+	bool scissorTestEnabled;
+	bool borderThicknessTestEnabled;
+	bool roundedRecTestEnabled;
+	bool roundedBorderTestEnabled;
+	r32 roundedBorderThickness;
+	bool circleTestEnabled;
+	bool ringTestEnabled;
+	bool horizontalGuidesEnabled;
+	bool verticalGuidesEnabled;
+	r32 circlePieceAngleOffset;
+	r32 ringPieceAngleOffset;
+	r32 ringThickness;
 };
 
 #endif //  _APP_MAIN_H
