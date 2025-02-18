@@ -6,6 +6,8 @@ Description:
 	** Holds functions that help us write Clay UI a bit more tersely
 */
 
+#if BUILD_WITH_CLAY
+
 Clay_ElementDeclaration ClayFullscreenContainer(const char* id)
 {
 	return (Clay_ElementDeclaration){
@@ -189,3 +191,5 @@ bool ClayLabeledSlider(const char* labelStr, u16 labelFontId, u16 labelFontSize,
 	}
 	return valueChanged;
 }
+
+#endif //BUILD_WITH_CLAY

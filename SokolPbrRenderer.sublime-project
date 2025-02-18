@@ -133,6 +133,10 @@
 				"README.md",
 			],
 		},
+		{
+			"name": "cimgui",
+			"path": "core/third_party/cimgui",
+		},
 	],
 	"settings":
 	{
@@ -150,6 +154,7 @@
 			"BUILD_BULLET",
 			"BUILD_WITH_BULLET",
 			"BUILD_WITH_CLAY",
+			"BUILD_WITH_IMGUI",
 			"BUILD_WITH_SOKOL_APP",
 			"BUILD_WITH_SOKOL_GFX",
 			"CLAY_DEF_PADDING",
@@ -473,6 +478,7 @@
 			"GfxPipeline* GfxSystem_FindOrAddPipelineWithOptions(GfxSystem* system, const GfxPipelineOptions* options)",
 			"GfxPipeline* GfxSystem_FindPipelineWithOptions(GfxSystem* system, const GfxPipelineOptions* options)",
 			"ImageData NewImageData(v2i size, u32* pixels)",
+			"ImguiUI InitImguiUI(Arena* arena)",
 			"Key GetKeyFromSokolKeycodeEx(sapp_keycode keycode, u8 alternateIndex)",
 			"Key GetNonAltKeyForKey(Key key, u8 primaryIndex)",
 			"Line2D NewLine2D(r32 startX, r32 startY, r32 endX, r32 endY)",
@@ -722,6 +728,7 @@
 			"FontStyleFlag",
 			"GeneratedMesh",
 			"GfxPipelineBlendMode",
+			"ImguiUI",
 			"Key",
 			"Model3D",
 			"ModelDataPart",

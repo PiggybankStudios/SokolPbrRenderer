@@ -25,6 +25,10 @@ struct AppData
 	u16 clayFont;
 	#endif
 	
+	#if BUILD_WITH_IMGUI
+	ImguiUI imgui;
+	#endif
+	
 	sg_pass_action sokolPassAction;
 	Shader main2dShader;
 	#if FP3D_SCENE_ENABLED

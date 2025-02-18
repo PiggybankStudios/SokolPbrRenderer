@@ -40,6 +40,7 @@ for /f "delims=" %%i in ('%extract_define% CONVERT_WASM_TO_WAT') do set CONVERT_
 for /f "delims=" %%i in ('%extract_define% USE_EMSCRIPTEN') do set USE_EMSCRIPTEN=%%i
 for /f "delims=" %%i in ('%extract_define% ENABLE_AUTO_PROFILE') do set ENABLE_AUTO_PROFILE=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_WITH_BULLET') do set BUILD_WITH_BULLET=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_WITH_IMGUI') do set BUILD_WITH_IMGUI=%%i
 for /f "delims=" %%i in ('%extract_define% PROJECT_DLL_NAME') do set PROJECT_DLL_NAME=%%i
 for /f "delims=" %%i in ('%extract_define% PROJECT_EXE_NAME') do set PROJECT_EXE_NAME=%%i
 
@@ -137,9 +138,13 @@ if "%DEBUG_BUILD%"=="1" (
 :: /LIBPATH = Add a library search path
 :: Gdi32.lib = Needed for os_font.h
 set common_ld_flags=-incremental:no /NOLOGO Gdi32.lib
+set pig_core_ld_flags=
 set platform_ld_flags=
 if "%BUILD_WITH_BULLET%"=="1" (
 	set platform_ld_flags=%platform_ld_flags% Bullet3Collision.lib Bullet3Common.lib Bullet3Dynamics.lib Bullet3Geometry.lib BulletCollision.lib BulletDynamics.lib BulletInverseDynamics.lib BulletInverseDynamicsUtils.lib BulletSoftBody.lib LinearMath.lib
+)
+if "%BUILD_WITH_IMGUI%"=="1" (
+	set pig_core_ld_flags=%pig_core_ld_flags% cimgui.lib
 )
 if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_debug" /LIBPATH:"%core%\third_party\_lib_debug"
@@ -241,7 +246,7 @@ set pig_core_source_path=%core%/dll/dll_main.c
 set pig_core_dll_path=pig_core.dll
 set pig_core_lib_path=pig_core.lib
 set pig_core_so_path=libpig_core.so
-set pig_core_cl_args=%common_cl_flags% %c_cl_flags% %pig_core_defines% /Fe%pig_core_dll_path% %pig_core_source_path% /link %common_ld_flags% /DLL
+set pig_core_cl_args=%common_cl_flags% %c_cl_flags% %pig_core_defines% /Fe%pig_core_dll_path% %pig_core_source_path% /link %common_ld_flags% %pig_core_ld_flags% /DLL
 :: -fPIC = "Position Independent Code" (Required for globals to work properly?)
 :: -shared = ?
 set pig_core_clang_args=%common_clang_flags% %linux_clang_flags% -fPIC -shared -o %pig_core_so_path% ../%pig_core_source_path%
@@ -328,7 +333,7 @@ if "%BUILD_WITH_BULLET%"=="1" (
 set platform_cl_args=%common_cl_flags% %c_cl_flags% /Fe%platform_exe_path% %platform_source_path% %platform_extra_objs% /link %common_ld_flags% %platform_ld_flags% %resources_res_path%
 set platform_clang_args=%common_clang_flags% %linux_clang_flags% -o %platform_bin_path% ../%platform_source_path%
 if "%BUILD_INTO_SINGLE_UNIT%"=="1" (
-	set platform_cl_args=%platform_cl_args% %shader_object_files%
+	set platform_cl_args=%platform_cl_args% %pig_core_ld_flags% %shader_object_files%
 	set platform_clang_args=%platform_clang_args% %shader_linux_object_files%
 ) else (
 	REM -rpath = Add to RPATH so that libpig_core.so can be found in this folder (it doesn't need to be copied to any system folder)

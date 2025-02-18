@@ -349,6 +349,10 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	// Clay_SetDebugModeEnabled(true);
 	#endif
 	
+	#if BUILD_WITH_IMGUI
+	app->imgui = InitImguiUI(stdHeap);
+	#endif
+	
 	#if FP3D_SCENE_ENABLED
 	app->spherePos = V3_Zero;
 	app->sphereRadius = 0.5f;
