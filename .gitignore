@@ -3,3 +3,6 @@ core/
 _build/
 _data/*.exe
 _data/*.dll
+*.blend
+*.blend1
+_data/resources/model/fire_hydrant2/
