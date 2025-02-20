@@ -11,6 +11,7 @@ typedef struct PlatformData PlatformData;
 struct PlatformData
 {
 	Arena stdHeap;
+	Arena stdHeapAllowFreeWithoutSize;
 	
 	AppApi appApi;
 	#if !BUILD_INTO_SINGLE_UNIT

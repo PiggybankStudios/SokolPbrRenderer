@@ -64,3 +64,20 @@ SET_WINDOW_ICON_DEF(Plat_SetWindowIcon)
 	}
 	sapp_set_icon(&iconDesc);
 }
+
+// +==============================+
+// |  Plat_GetNativeWindowHandle  |
+// +==============================+
+// const void* Plat_GetNativeWindowHandle()
+GET_NATIVE_WINDOW_HANDLE_DEF(Plat_GetNativeWindowHandle)
+{
+	const void* result = nullptr;
+	#if TARGET_IS_WINDOWS
+	{
+		result = sapp_win32_get_hwnd();
+	}
+	#else
+	AssertMsg(false, "Plat_GetNativeWindowHandle doesn't have an implementation for the current TARGET!");
+	#endif
+	return result;
+}

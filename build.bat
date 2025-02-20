@@ -19,16 +19,18 @@ if errorlevel 1 (
 )
 
 set extract_define=python %scripts%\extract_define.py ../build_config.h
+for /f "delims=" %%i in ('%extract_define% DEBUG_BUILD') do set DEBUG_BUILD=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_INTO_SINGLE_UNIT') do set BUILD_INTO_SINGLE_UNIT=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_WINDOWS') do set BUILD_WINDOWS=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_LINUX') do set BUILD_LINUX=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_WEB') do set BUILD_WEB=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_SHADERS') do set BUILD_SHADERS=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_BULLET') do set BUILD_BULLET=%%i
-for /f "delims=" %%i in ('%extract_define% DEBUG_BUILD') do set DEBUG_BUILD=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_IMGUI_OBJ') do set BUILD_IMGUI_OBJ=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_IMGUI_OBJ_IF_NEEDED') do set BUILD_IMGUI_OBJ_IF_NEEDED=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIGGEN') do set BUILD_PIGGEN=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIGGEN_IF_NEEDED') do set BUILD_PIGGEN_IF_NEEDED=%%i
 for /f "delims=" %%i in ('%extract_define% RUN_PIGGEN') do set RUN_PIGGEN=%%i
-for /f "delims=" %%i in ('%extract_define% BUILD_INTO_SINGLE_UNIT') do set BUILD_INTO_SINGLE_UNIT=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIG_CORE_LIB') do set BUILD_PIG_CORE_LIB=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIG_CORE_LIB_IF_NEEDED') do set BUILD_PIG_CORE_LIB_IF_NEEDED=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_APP_EXE') do set BUILD_APP_EXE=%%i
@@ -73,7 +75,8 @@ if "%BUILD_WINDOWS%"=="1" ( echo VsDevCmd.bat took %vsdevcmd_elapsed_seconds_par
 :: /experimental:c11atomics = Enables _Atomic types
 set c_cl_flags=/std:clatest /experimental:c11atomics
 :: /wd4471 = a forward declaration of an unscoped enumeration must have an underlying type
-set cpp_cl_flags=/std:c++20 /wd4471
+:: /wd5054 = operator '|': deprecated between enumerations of different types
+set cpp_cl_flags=/std:c++20 /wd4471 /wd5054
 :: /FC = Full path for error messages
 :: /nologo = Suppress the startup banner
 :: /W4 = Warning level 4 [just below /Wall]
@@ -101,6 +104,9 @@ set common_cl_flags=%common_cl_flags% /wd4130 /wd4201 /wd4324 /wd4458 /wd4505 /w
 set common_clang_flags=%common_clang_flags% -Wno-switch -Wno-unused-function
 :: /I = Adds an include directory to search in when resolving #includes
 set common_cl_flags=%common_cl_flags% /I"%root%" /I"%app%" /I"%core%"
+if "%BUILD_WITH_IMGUI%"=="1" (
+	set common_cl_flags=%common_cl_flags% /I"%core%\third_party\imgui"
+)
 :: -I = Add directory to the end of the list of include search paths
 :: -lm = Include the math library (required for stuff like sinf, atan, etc.)
 :: -ldl = Needed for dlopen and similar functions
@@ -108,6 +114,7 @@ set common_cl_flags=%common_cl_flags% /I"%root%" /I"%app%" /I"%core%"
 :: -maes = For MeowHash to work we need aes support
 set linux_clang_flags=-lm -ldl -L "." -I "../%root%" -I "../%app%" -I "../%core%" -mssse3 -maes
 if "%DEBUG_BUILD%"=="1" (
+	REM /MDd = ?
 	REM /Od = Optimization level: Debug
 	REM /Zi = Generate complete debugging information
 	REM /wd4065 = Switch statement contains 'default' but no 'case' labels
@@ -116,21 +123,16 @@ if "%DEBUG_BUILD%"=="1" (
 	REM /wd4127 = Conditional expression is constant [W4]
 	REM /wd4189 = Local variable is initialized but not referenced [W4]
 	REM /wd4702 = Unreachable code [W4]
-	set common_cl_flags=%common_cl_flags% /Od /Zi /wd4065 /wd4100 /wd4101 /wd4127 /wd4189 /wd4702
-	REM /MDd = ?
-	set c_cl_flags=%c_cl_flags% /MDd
-	set cpp_cl_flags=%cpp_cl_flags% /MTd
+	set common_cl_flags=%common_cl_flags% /MDd /Od /Zi /wd4065 /wd4100 /wd4101 /wd4127 /wd4189 /wd4702
 	REM -Wno-unused-parameter = warning: unused parameter 'numBytes'
 	set common_clang_flags=%common_clang_flags% -Wno-unused-parameter -Wno-unused-variable
 ) else (
+	REM /MD = ?
 	REM /Ot = Favors fast code over small code
 	REM /Oy = Omit frame pointer [x86 only]
 	REM /O2 = Optimization level 2: Creates fast code
 	REM /Zi = Generate complete debugging information [optional]
 	set common_cl_flags=%common_cl_flags% /MD /Ot /Oy /O2
-	REM /MD = ?
-	set c_cl_flags=%c_cl_flags% /MD
-	set cpp_cl_flags=%cpp_cl_flags% /MT
 	set common_clang_flags=%common_clang_flags%
 )
 
@@ -142,9 +144,6 @@ set pig_core_ld_flags=
 set platform_ld_flags=
 if "%BUILD_WITH_BULLET%"=="1" (
 	set platform_ld_flags=%platform_ld_flags% Bullet3Collision.lib Bullet3Common.lib Bullet3Dynamics.lib Bullet3Geometry.lib BulletCollision.lib BulletDynamics.lib BulletInverseDynamics.lib BulletInverseDynamicsUtils.lib BulletSoftBody.lib LinearMath.lib
-)
-if "%BUILD_WITH_IMGUI%"=="1" (
-	set pig_core_ld_flags=%pig_core_ld_flags% cimgui.lib
 )
 if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_debug" /LIBPATH:"%core%\third_party\_lib_debug"
@@ -240,13 +239,39 @@ if "%RUN_PIGGEN%"=="1" (
 )
 
 :: +--------------------------------------------------------------+
+:: |                       Build imgui.obj                        |
+:: +--------------------------------------------------------------+
+set imgui_source_path=%core%/ui/ui_imgui_main.cpp
+set imgui_obj_path=imgui.obj
+set imgui_cl_args=/c %common_cl_flags% %cpp_cl_flags% /I"%core%/third_party/imgui" /Fo%imgui_obj_path% %imgui_source_path%
+
+if "%BUILD_IMGUI_OBJ_IF_NEEDED%"=="1" (
+	if "%BUILD_WINDOWS%"=="1" (
+		if not exist %imgui_obj_path% (
+			set BUILD_IMGUI_OBJ=1
+		)
+	)
+)
+
+if "%BUILD_IMGUI_OBJ%"=="1" (
+	if "%BUILD_WINDOWS%"=="1" (
+		del "%imgui_obj_path%" > NUL 2> NUL
+		
+		echo.
+		echo [Building %imgui_obj_path% for Windows...]
+		cl %imgui_cl_args%
+		echo [Built %imgui_obj_path% for Windows!]
+	)
+)
+
+:: +--------------------------------------------------------------+
 :: |                      Build pig_core.dll                      |
 :: +--------------------------------------------------------------+
 set pig_core_source_path=%core%/dll/dll_main.c
 set pig_core_dll_path=pig_core.dll
 set pig_core_lib_path=pig_core.lib
 set pig_core_so_path=libpig_core.so
-set pig_core_cl_args=%common_cl_flags% %c_cl_flags% %pig_core_defines% /Fe%pig_core_dll_path% %pig_core_source_path% /link %common_ld_flags% %pig_core_ld_flags% /DLL
+set pig_core_cl_args=%common_cl_flags% %c_cl_flags% %pig_core_defines% /Fe%pig_core_dll_path% %pig_core_source_path% /link %common_ld_flags% %pig_core_ld_flags% %imgui_obj_path% /DLL
 :: -fPIC = "Position Independent Code" (Required for globals to work properly?)
 :: -shared = ?
 set pig_core_clang_args=%common_clang_flags% %linux_clang_flags% -fPIC -shared -o %pig_core_so_path% ../%pig_core_source_path%
@@ -333,7 +358,7 @@ if "%BUILD_WITH_BULLET%"=="1" (
 set platform_cl_args=%common_cl_flags% %c_cl_flags% /Fe%platform_exe_path% %platform_source_path% %platform_extra_objs% /link %common_ld_flags% %platform_ld_flags% %resources_res_path%
 set platform_clang_args=%common_clang_flags% %linux_clang_flags% -o %platform_bin_path% ../%platform_source_path%
 if "%BUILD_INTO_SINGLE_UNIT%"=="1" (
-	set platform_cl_args=%platform_cl_args% %pig_core_ld_flags% %shader_object_files%
+	set platform_cl_args=%platform_cl_args% %pig_core_ld_flags% %imgui_obj_path% %shader_object_files%
 	set platform_clang_args=%platform_clang_args% %shader_linux_object_files%
 ) else (
 	REM -rpath = Add to RPATH so that libpig_core.so can be found in this folder (it doesn't need to be copied to any system folder)

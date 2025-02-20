@@ -14,6 +14,14 @@ Description:
 #ifndef _BUILD_CONFIG_H
 #define _BUILD_CONFIG_H
 
+// Controls whether we are making a build that we want to run with a Debugger.
+// This often sacrifices runtime speed or code size for extra debug information.
+// Debug builds often take less time to compile as well.
+#define DEBUG_BUILD  1
+
+// This disables hot-reloading support, the platform and game are one unit. Also PigCore gets compiled in directly rather than being used as a dynamic library
+#define BUILD_INTO_SINGLE_UNIT  0
+
 // Build .exe binaries for Windows platform
 #define BUILD_WINDOWS 1
 // Build binaries for Linux platform(s)
@@ -25,11 +33,6 @@ Description:
 // Builds the bullet_main.cpp in C++ mode into bullet.lib which can then be linked into the platform layer
 #define BUILD_BULLET  0
 
-// Controls whether we are making a build that we want to run with a Debugger.
-// This often sacrifices runtime speed or code size for extra debug information.
-// Debug builds often take less time to compile as well.
-#define DEBUG_BUILD  1
-
 // Compiles core/piggen/main.c
 #define BUILD_PIGGEN            0
 // Same as above but only compiles if piggen.exe doesn't already exist in the _build folder
@@ -37,8 +40,10 @@ Description:
 // Generates code for all projects using piggen.exe (you can turn this off if you're not making changes to generated code and you've already generated it once)
 #define RUN_PIGGEN              0
 
-// This disables hot-reloading support, the platform and game are one unit. Also PigCore gets compiled in directly rather than being used as a dynamic library
-#define BUILD_INTO_SINGLE_UNIT  0
+// Builds imgui.obj from imgui.cpp and cimgui.cpp (really it's building core/ui/ui_imgui_main.cpp which includes those)
+#define BUILD_IMGUI_OBJ           1
+// Same as above but only compiles if the obj doesn't already exist in the _build folder
+#define BUILD_IMGUI_OBJ_IF_NEEDED 1
 
 // Compiles piggen/main.c to either dynamic or static library
 #define BUILD_PIG_CORE_LIB            1

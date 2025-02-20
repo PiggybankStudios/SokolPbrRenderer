@@ -14,6 +14,7 @@ typedef struct PlatformInfo PlatformInfo;
 struct PlatformInfo
 {
 	Arena* platformStdHeap;
+	Arena* platformStdHeapAllowFreeWithoutSize;
 };
 
 typedef struct AppInput AppInput;
@@ -52,6 +53,9 @@ typedef SET_WINDOW_TITLE_DEF(SetWindowTitle_f);
 #define SET_WINDOW_ICON_DEF(functionName) void functionName(uxx numIconSizes, const ImageData* iconSizes)
 typedef SET_WINDOW_ICON_DEF(SetWindowIcon_f);
 
+#define GET_NATIVE_WINDOW_HANDLE_DEF(functionName) const void* functionName()
+typedef GET_NATIVE_WINDOW_HANDLE_DEF(GetNativeWindowHandle_f);
+
 typedef struct PlatformApi PlatformApi;
 struct PlatformApi
 {
@@ -59,6 +63,7 @@ struct PlatformApi
 	SetMouseLocked_f* SetMouseLocked;
 	SetWindowTitle_f* SetWindowTitle;
 	SetWindowIcon_f* SetWindowIcon;
+	GetNativeWindowHandle_f* GetNativeWindowHandle;
 };
 
 // +--------------------------------------------------------------+

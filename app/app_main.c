@@ -350,7 +350,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	#endif
 	
 	#if BUILD_WITH_IMGUI
-	app->imgui = InitImguiUI(stdHeap);
+	app->imgui = InitImguiUI(platformInfo->platformStdHeapAllowFreeWithoutSize, platform->GetNativeWindowHandle());
 	#endif
 	
 	#if FP3D_SCENE_ENABLED

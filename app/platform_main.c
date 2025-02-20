@@ -75,6 +75,8 @@ void PlatSappInit(void)
 	ClearPointer(platformData);
 	MyMemCopy(&platformData->stdHeap, &stdHeapLocal, sizeof(Arena));
 	stdHeap = &platformData->stdHeap;
+	InitArenaStdHeap(&platformData->stdHeapAllowFreeWithoutSize);
+	FlagSet(platformData->stdHeapAllowFreeWithoutSize.flags, ArenaFlag_AllowFreeWithoutSize);
 	InitScratchArenasVirtual(Gigabytes(4));
 	
 	ScratchBegin(loadScratch);
@@ -97,6 +99,7 @@ void PlatSappInit(void)
 	NotNull(platformInfo);
 	ClearPointer(platformInfo);
 	platformInfo->platformStdHeap = stdHeap;
+	platformInfo->platformStdHeapAllowFreeWithoutSize = &platformData->stdHeapAllowFreeWithoutSize;
 	
 	platform = AllocType(PlatformApi, stdHeap);
 	NotNull(platform);
@@ -105,6 +108,7 @@ void PlatSappInit(void)
 	platform->SetMouseLocked = Plat_SetMouseLocked;
 	platform->SetWindowTitle = Plat_SetWindowTitle;
 	platform->SetWindowIcon = Plat_SetWindowIcon;
+	platform->GetNativeWindowHandle = Plat_GetNativeWindowHandle;
 	
 	#if BUILD_INTO_SINGLE_UNIT
 	{
