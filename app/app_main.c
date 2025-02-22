@@ -342,6 +342,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	app->debugFont = InitFont(stdHeap, StrLit("debugFont"));
 	r32 debugFontSizes[] = { 12, 18, 24 };
 	RasterizeFontAtSizes(&app->debugFont, StrLit("Consolas"), ArrayCount(debugFontSizes), &debugFontSizes[0], FontStyleFlag_Bold);
+	app->fontTestEnabled = true;
 	
 	#if BUILD_WITH_CLAY
 	InitClayUIRenderer(stdHeap, V2_Zero, &app->clay);
@@ -366,10 +367,10 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	app->roundedBorderThickness = 30.0f;
 	app->ringThickness = 30.0f;
-	app->roundedBorderTestEnabled = true;
-	app->ringTestEnabled = true;
-	app->horizontalGuidesEnabled = true;
-	app->verticalGuidesEnabled = true;
+	// app->roundedBorderTestEnabled = true;
+	// app->ringTestEnabled = true;
+	// app->horizontalGuidesEnabled = true;
+	// app->verticalGuidesEnabled = true;
 	
 	app->initialized = true;
 	ScratchEnd(scratch);
@@ -406,6 +407,12 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	#if BUILD_WITH_IMGUI
 	imguiTopbarHeight = app->imguiTopbarEnabled ? 16.0f : 0.0f; //TODO: How can we ask ImGui for this number rather than hardcoding it?
 	#endif
+	rec viewRec = NewRec(0, imguiTopbarHeight, 0, 0);
+	#if BUILD_WITH_CLAY
+	viewRec.Y += CLAY_TOPBAR_HEIGHT;
+	#endif
+	viewRec.Width = screenSize.Width - viewRec.X;
+	viewRec.Height = screenSize.Height - viewRec.Y;
 	
 	#if BUILD_WITH_IMGUI
 	{
@@ -459,11 +466,11 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		}
 	}
 	
-	if ((appIn->screenSizeChanged || IsEmptyStr(app->text)) && !appIn->isMinimized)
+	if ((appIn->screenSizeChanged || IsEmptyStr(app->text) || app->textChanged) && !appIn->isMinimized)
 	{
 		PrintLine_D("ScreenSize: %dx%d", appIn->screenSize.Width, appIn->screenSize.Height);
 		app->textPos = Div(ToV2Fromi(appIn->screenSize), 2.0f);
-		app->text = StrLit("Hello World!");
+		if (app->text.chars == nullptr) { app->text = AllocStr8Nt(stdHeap, "Hello World!"); }
 		FreeTextLayout(&app->textLayout);
 		FontFlowState flowState = ZEROED;
 		flowState.font = &app->testFont;
@@ -474,6 +481,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 		Result layoutResult = DoTextLayoutInArena(stdHeap, &flowState, &app->textLayout);
 		Assert(layoutResult == Result_Success);
 		app->textMeasure = MeasureText(&app->testFont, app->text);
+		app->textChanged = false;
 	}
 	
 	#if FP3D_SCENE_ENABLED
@@ -583,6 +591,37 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			// rec piggyblobRec = NewRec(0, (r32)appIn->screenSize.Height - (r32)app->testSprite.Height, (r32)app->testSprite.Width, (r32)app->testSprite.Height);
 			// DrawTexturedRectangle(piggyblobRec, White, &app->testSprite);
 			
+			if (app->fontTestEnabled)
+			{
+				r32 atlasPosX = viewRec.X;
+				VarArrayLoop(&app->testFont.atlases, aIndex)
+				{
+					VarArrayLoopGet(FontAtlas, atlas, &app->testFont.atlases, aIndex);
+					rec atlasRec = NewRec(atlasPosX, viewRec.Y, (r32)atlas->texture.Width, (r32)atlas->texture.Height);
+					DrawTexturedRectangle(atlasRec, White, &atlas->texture);
+					DrawRectangleOutline(atlasRec, 2.0f, White);
+					atlasPosX += (r32)atlas->texture.Width;
+				}
+				
+				if (!IsEmptyStr(app->text))
+				{
+					BindFontAtSize(&app->debugFont, 18);
+					FontAtlas* fontAtlas = GetFontAtlas(gfx.state.font, gfx.state.fontSize, gfx.state.fontStyleFlags);
+					NotNull(fontAtlas);
+					DrawText(app->text, app->textPos, White);
+					// #define DrawRectangleOutlineEx(rectangle, borderThickness, color, outside)
+					DrawRectangleOutlineEx(gfx.prevFontFlow.visualRec, 4, MonokaiPurple, true);
+					DrawRectangleOutlineEx(gfx.prevFontFlow.logicalRec, 2, MonokaiGreen, true);
+					DrawRectangleOutlineEx(NewRecV(Add(gfx.prevFontFlow.logicalRec.TopLeft, NewV2(0, fontAtlas->lineHeight)), gfx.prevFontFlow.logicalRec.Size), 1, MonokaiRed, true);
+					DrawRectangle(NewRecCenteredV(app->textPos, NewV2(2,2)), MonokaiBlue);
+					// DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
+					// for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
+					// {
+					// 	FontFlowGlyph* glyph = &app->textL ayout.glyphs[gIndex];
+					// 	DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
+					// }
+				}
+			}
 			if (app->horizontalGuidesEnabled)
 			{
 				for (uxx bIndex = 0; bIndex <= GFX_SYSTEM_CIRCLE_NUM_SIDES; bIndex++)
@@ -705,6 +744,11 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 						
 						if (ClayTopBtn("Debug", &app->topbarDebugMenuOpen, MonokaiBack, MonokaiWhite, 340))
 						{
+							if (ClayBtn(ScratchPrint("%s Font", app->fontTestEnabled ? "Disable" : "Enable"), Transparent, app->fontTestEnabled ? MonokaiGreen : MonokaiWhite))
+							{
+								app->fontTestEnabled = !app->fontTestEnabled;
+							} Clay__CloseElement();
+							
 							if (ClayBtn(ScratchPrint("%s Border Thickness", app->borderThicknessTestEnabled ? "Disable" : "Enable"), Transparent, app->borderThicknessTestEnabled ? MonokaiGreen : MonokaiWhite))
 							{
 								app->borderThicknessTestEnabled = !app->borderThicknessTestEnabled;
@@ -812,7 +856,10 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 					#else
 					Str8 statusText = StrLit("Move your mouse!");
 					#endif
-					ClayTextStr(statusText, app->clayFont, 18, Black);
+					CLAY({ .layout = { .padding = { .left=4, .bottom=6 } } })
+					{
+						ClayTextStr(statusText, app->clayFont, 18, Black);
+					}
 				}
 			}
 			Clay_RenderCommandArray clayRenderCommands = EndClayUIRender(&app->clay.clay);
@@ -848,40 +895,23 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 				if (igBegin("Test Window", &app->isImguiTestWindowOpen, ImGuiWindowFlags_None))
 				{
 					igText("Hello from Dear ImGui!");
+					if (app->fontTestEnabled)
+					{
+						char editBuffer[256] = ZEROED;
+						MyMemCopy(editBuffer, app->text.chars, app->text.length);
+						editBuffer[app->text.length] = '\0';
+						bool textChanged = igInputText("Display String", &editBuffer[0], ArrayCount(editBuffer), ImGuiInputTextFlags_None, nullptr, nullptr);
+						if (textChanged)
+						{
+							FreeStr8(stdHeap, &app->text);
+							app->text = AllocStr8Nt(stdHeap, &editBuffer[0]);
+							app->textChanged = true;
+						}
+					}
 				}
 				igEnd();
 			}
-			// if (igBegin("Test", &app->testWindowOpen, ImGuiWindowFlags_None))
-			// {
-			// 	igText("Hello from Dear ImGui!");
-			// 	igEnd();
-			// }
 			GfxSystem_ImguiEndFrame(&gfx, app->imgui);
-			#endif
-			
-			#if 0
-			r32 atlasPosX = 0;
-			VarArrayLoop(&app->testFont.atlases, aIndex)
-			{
-				VarArrayLoopGet(FontAtlas, atlas, &app->testFont.atlases, aIndex);
-				rec atlasRec = NewRec(atlasPosX, 0, (r32)atlas->texture.Width, (r32)atlas->texture.Height);
-				DrawTexturedRectangle(atlasRec, White, &atlas->texture);
-				DrawRectangleOutline(atlasRec, 2.0f, White);
-				atlasPosX += (r32)atlas->texture.Width;
-			}
-			
-			if (!IsEmptyStr(app->text))
-			{
-				BindFont(&app->testFont);
-				DrawText(app->text, app->textPos, White);
-				// DrawRectangle(gfx.prevFontFlow.visualRec, NewColor(255, 128, 100, 128));
-				// DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
-				// for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
-				// {
-				// 	FontFlowGlyph* glyph = &app->textL ayout.glyphs[gIndex];
-				// 	DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
-				// }
-			}
 			#endif
 		}
 	}

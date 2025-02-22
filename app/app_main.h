@@ -62,6 +62,7 @@ struct AppData
 	Font debugFont;
 	v2 textPos;
 	Str8 text;
+	bool textChanged;
 	TextMeasure textMeasure;
 	TextLayout textLayout;
 	
@@ -77,6 +78,7 @@ struct AppData
 	
 	bool topbarDebugMenuOpen;
 	bool topbarCameraMenuOpen;
+	bool fontTestEnabled;
 	bool scissorTestEnabled;
 	bool borderThicknessTestEnabled;
 	bool roundedRecTestEnabled;

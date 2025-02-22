@@ -12,7 +12,7 @@ Date:   02\02\2025
 #define MOUSE_LERP_WINDOW_PADDING 32 //px
 
 #define CLAY_DEF_PADDING   2 //px
-#define CLAY_TOPBAR_HEIGHT 26 //px
+#define CLAY_TOPBAR_HEIGHT 30 //px
 
 #define IMGUI_TOPBAR_TOGGLE_HOTKEY Key_F6
 
