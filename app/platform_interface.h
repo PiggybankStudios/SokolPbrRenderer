@@ -27,6 +27,7 @@ struct AppInput
 	MouseState mouse;
 	//TODO: Add ControllerStates
 	
+	sapp_mouse_cursor cursorType;
 	bool isFullscreen;
 	bool isFullscreenChanged;
 	bool isMinimized;
@@ -47,6 +48,9 @@ typedef GET_SOKOL_SWAPCHAIN_DEF(GetSokolSwapchain_f);
 #define SET_MOUSE_LOCKED_DEF(functionName) void functionName(bool isMouseLocked)
 typedef SET_MOUSE_LOCKED_DEF(SetMouseLocked_f);
 
+#define SET_MOUSE_CURSOR_TYPE_DEF(functionName) void functionName(sapp_mouse_cursor cursorType)
+typedef SET_MOUSE_CURSOR_TYPE_DEF(SetMouseCursorType_f);
+
 #define SET_WINDOW_TITLE_DEF(functionName) void functionName(Str8 windowTitle)
 typedef SET_WINDOW_TITLE_DEF(SetWindowTitle_f);
 
@@ -61,6 +65,7 @@ struct PlatformApi
 {
 	GetSokolSwapchain_f* GetSokolSwapchain;
 	SetMouseLocked_f* SetMouseLocked;
+	SetMouseCursorType_f* SetMouseCursorType;
 	SetWindowTitle_f* SetWindowTitle;
 	SetWindowIcon_f* SetWindowIcon;
 	GetNativeWindowHandle_f* GetNativeWindowHandle;

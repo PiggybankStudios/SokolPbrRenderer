@@ -27,6 +27,7 @@ struct AppData
 	
 	#if BUILD_WITH_IMGUI
 	ImguiUI* imgui;
+	bool demoWindowOpen;
 	#endif
 	
 	sg_pass_action sokolPassAction;

@@ -33,6 +33,23 @@ SET_MOUSE_LOCKED_DEF(Plat_SetMouseLocked)
 }
 
 // +==============================+
+// |   Plat_SetMouseCursorType    |
+// +==============================+
+// void Plat_SetMouseCursorType(sapp_mouse_cursor cursorType)
+SET_MOUSE_CURSOR_TYPE_DEF(Plat_SetMouseCursorType)
+{
+	NotNull(platformData);
+	NotNull(platformData->oldAppInput);
+	NotNull(platformData->currentAppInput);
+	sapp_set_mouse_cursor(cursorType);
+	if (platformData->currentAppInput->cursorType != cursorType)
+	{
+		platformData->oldAppInput->cursorType = cursorType;
+		platformData->currentAppInput->cursorType = cursorType;
+	}
+}
+
+// +==============================+
 // |     Plat_SetWindowTitle      |
 // +==============================+
 // void Plat_SetWindowTitle(Str8 windowTitle)

@@ -351,6 +351,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	#if BUILD_WITH_IMGUI
 	app->imgui = InitImguiUI(platformInfo->platformStdHeapAllowFreeWithoutSize, platform->GetNativeWindowHandle());
+	app->demoWindowOpen = true;
 	#endif
 	
 	#if FP3D_SCENE_ENABLED
@@ -399,6 +400,20 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	);
 	r32 mouseLerpX = ClampR32(InverseLerpR32(mouseLerpRec.X, mouseLerpRec.X + mouseLerpRec.Width, mousePos.X), 0.0f, 1.0f);
 	r32 mouseLerpY = ClampR32(InverseLerpR32(mouseLerpRec.Y, mouseLerpRec.Y + mouseLerpRec.Height, mousePos.Y), 0.0f, 1.0f);
+	
+	#if BUILD_WITH_IMGUI
+	ImguiInput imguiInput = ZEROED;
+	imguiInput.deltaTimeMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
+	imguiInput.keyboard = &appIn->keyboard;
+	imguiInput.mouse = &appIn->mouse;
+	imguiInput.isMouseOverOther = false; //TODO: We need some way of tracking 2D hittests with the mouse!
+	imguiInput.isWindowFocused = appIn->isFocused;
+	imguiInput.windowFocusedChanged = appIn->isFocusedChanged;
+	imguiInput.isTyping = false; //TODO: We need some way of knowing when a input textbox is focused!
+	ImguiOutput imguiOutput = ZEROED;
+	UpdateImguiInput(app->imgui, &imguiInput, &imguiOutput);
+	platform->SetMouseCursorType(imguiOutput.cursorType);
+	#endif //BUILD_WITH_IMGUI
 	
 	#if FP3D_SCENE_ENABLED
 	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_R))
@@ -782,6 +797,19 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			Clay_RenderCommandArray clayRenderCommands = EndClayUIRender(&app->clay.clay);
 			RenderClayCommandArray(&app->clay, &gfx, &clayRenderCommands);
 			#endif //BUILD_WITH_CLAY
+			
+			#if BUILD_WITH_IMGUI
+			// DrawTexturedRectangle(NewRecV(NewV2(50, 50), ToV2Fromi(app->imgui->fontTexture.size)), White, &app->imgui->fontTexture);
+			
+			GfxSystem_ImguiBeginFrame(&gfx, app->imgui);
+			igShowDemoWindow(&app->demoWindowOpen);
+			// if (igBegin("Test", &app->testWindowOpen, ImGuiWindowFlags_None))
+			// {
+			// 	igText("Hello from Dear ImGui!");
+			// 	igEnd();
+			// }
+			GfxSystem_ImguiEndFrame(&gfx, app->imgui);
+			#endif
 			
 			#if 0
 			r32 atlasPosX = 0;
