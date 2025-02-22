@@ -351,7 +351,7 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	
 	#if BUILD_WITH_IMGUI
 	app->imgui = InitImguiUI(platformInfo->platformStdHeapAllowFreeWithoutSize, platform->GetNativeWindowHandle());
-	app->demoWindowOpen = true;
+	app->imguiTopbarEnabled = true;
 	#endif
 	
 	#if FP3D_SCENE_ENABLED
@@ -402,21 +402,29 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	r32 mouseLerpY = ClampR32(InverseLerpR32(mouseLerpRec.Y, mouseLerpRec.Y + mouseLerpRec.Height, mousePos.Y), 0.0f, 1.0f);
 	bool isTyping = false;
 	bool isMouseOverUi = false;
+	r32 imguiTopbarHeight = 0.0f;
+	#if BUILD_WITH_IMGUI
+	imguiTopbarHeight = app->imguiTopbarEnabled ? 16.0f : 0.0f; //TODO: How can we ask ImGui for this number rather than hardcoding it?
+	#endif
 	
 	#if BUILD_WITH_IMGUI
-	ImguiInput imguiInput = ZEROED;
-	imguiInput.deltaTimeMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
-	imguiInput.keyboard = &appIn->keyboard;
-	imguiInput.mouse = &appIn->mouse;
-	imguiInput.isMouseOverOther = isMouseOverUi;
-	imguiInput.isWindowFocused = appIn->isFocused;
-	imguiInput.windowFocusedChanged = appIn->isFocusedChanged;
-	imguiInput.isTyping = isTyping;
-	ImguiOutput imguiOutput = ZEROED;
-	UpdateImguiInput(app->imgui, &imguiInput, &imguiOutput);
-	platform->SetMouseCursorType(imguiOutput.cursorType);
-	if (!isTyping && imguiOutput.isImguiTypingFocused) { isTyping = true; }
-	if (!isMouseOverUi && imguiOutput.isMouseOverImgui) { isMouseOverUi = true; }
+	{
+		if (IsKeyboardKeyPressed(&appIn->keyboard, IMGUI_TOPBAR_TOGGLE_HOTKEY)) { app->imguiTopbarEnabled = !app->imguiTopbarEnabled; }
+		
+		ImguiInput imguiInput = ZEROED;
+		imguiInput.deltaTimeMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
+		imguiInput.keyboard = &appIn->keyboard;
+		imguiInput.mouse = &appIn->mouse;
+		imguiInput.isMouseOverOther = isMouseOverUi;
+		imguiInput.isWindowFocused = appIn->isFocused;
+		imguiInput.windowFocusedChanged = appIn->isFocusedChanged;
+		imguiInput.isTyping = isTyping;
+		ImguiOutput imguiOutput = ZEROED;
+		UpdateImguiInput(app->imgui, &imguiInput, &imguiOutput);
+		platform->SetMouseCursorType(imguiOutput.cursorType);
+		if (!isTyping && imguiOutput.isImguiTypingFocused) { isTyping = true; }
+		if (!isMouseOverUi && imguiOutput.isMouseOverImgui) { isMouseOverUi = true; }
+	}
 	#endif //BUILD_WITH_IMGUI
 	
 	#if FP3D_SCENE_ENABLED
@@ -687,9 +695,9 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			}
 			
 			#if BUILD_WITH_CLAY
-			BeginClayUIRender(&app->clay.clay, ToV2Fromi(appIn->screenSize), 16.6f, appIn->mouse.position, IsMouseBtnDown(&appIn->mouse, MouseBtn_Left), appIn->mouse.scrollDelta);
+			BeginClayUIRender(&app->clay.clay, ToV2Fromi(appIn->screenSize), 16.6f, isMouseOverUi, appIn->mouse.position, IsMouseBtnDown(&appIn->mouse, MouseBtn_Left), appIn->mouse.scrollDelta);
 			{
-				CLAY(ClayFullscreenContainer("FullscreenContainer"))
+				CLAY(ClayFullscreenContainer("FullscreenContainer", (u16)imguiTopbarHeight))
 				{
 					CLAY(ClayTopbar("Topbar", CLAY_TOPBAR_HEIGHT, MonokaiBack))
 					{
@@ -815,7 +823,31 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			// DrawTexturedRectangle(NewRecV(NewV2(50, 50), ToV2Fromi(app->imgui->fontTexture.size)), White, &app->imgui->fontTexture);
 			
 			GfxSystem_ImguiBeginFrame(&gfx, app->imgui);
-			igShowDemoWindow(&app->demoWindowOpen);
+			if (app->imguiTopbarEnabled)
+			{
+				if (igBeginMainMenuBar())
+				{
+					if (igBeginMenu("Menu", true))
+					{
+						igMenuItem_BoolPtr("Demo Window", nullptr, &app->isImguiDemoWindowOpen, true);
+						igMenuItem_BoolPtr("Test Window", nullptr, &app->isImguiTestWindowOpen, true);
+						if (igMenuItem_Bool("Close", "Alt+F4", false, true)) { shouldContinueRunning = false; }
+						igEndMenu();
+					}
+					igSameLine(igGetWindowWidth() - 120, 0);
+					igTextColored(ToImVec4FromColor(MonokaiGray1), "(%s to Toggle)", GetKeyStr(IMGUI_TOPBAR_TOGGLE_HOTKEY));
+					igEndMainMenuBar();
+				}
+			}
+			if (app->isImguiDemoWindowOpen)
+			{
+				igShowDemoWindow(&app->isImguiDemoWindowOpen);
+			}
+			if (igBegin("Test Window", &app->isImguiTestWindowOpen, ImGuiWindowFlags_None))
+			{
+				igText("Hello from Dear ImGui!");
+			}
+			igEnd();
 			// if (igBegin("Test", &app->testWindowOpen, ImGuiWindowFlags_None))
 			// {
 			// 	igText("Hello from Dear ImGui!");
@@ -855,6 +887,14 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	ScratchEnd(scratch);
 	ScratchEnd(scratch2);
 	ScratchEnd(scratch3);
+	
+	#if BUILD_WITH_IMGUI
+	if (!shouldContinueRunning)
+	{
+		WriteLine_D("Saving to disk!");
+		igSaveIniSettingsToDisk(IMGUI_INI_FILE_NAME);
+	}
+	#endif
 	return shouldContinueRunning;
 }
 

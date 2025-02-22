@@ -14,4 +14,6 @@ Date:   02\02\2025
 #define CLAY_DEF_PADDING   2 //px
 #define CLAY_TOPBAR_HEIGHT 26 //px
 
+#define IMGUI_TOPBAR_TOGGLE_HOTKEY Key_F6
+
 #endif //  _DEFINES_H

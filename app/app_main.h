@@ -27,7 +27,9 @@ struct AppData
 	
 	#if BUILD_WITH_IMGUI
 	ImguiUI* imgui;
-	bool demoWindowOpen;
+	bool isImguiDemoWindowOpen;
+	bool imguiTopbarEnabled;
+	bool isImguiTestWindowOpen;
 	#endif
 	
 	sg_pass_action sokolPassAction;

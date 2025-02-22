@@ -8,13 +8,14 @@ Description:
 
 #if BUILD_WITH_CLAY
 
-Clay_ElementDeclaration ClayFullscreenContainer(const char* id)
+Clay_ElementDeclaration ClayFullscreenContainer(const char* id, u16 topPadding)
 {
 	return (Clay_ElementDeclaration){
 		.id = ToClayIdNt(id),
 		.layout = {
 			.layoutDirection = CLAY_TOP_TO_BOTTOM,
 			.sizing = { .width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_GROW(0) },
+			.padding = { .top = topPadding },
 			.childGap = CLAY_DEF_PADDING,
 		},
 	};
