@@ -175,6 +175,7 @@ void PlatSappInit(void)
 
 void PlatSappCleanup(void)
 {
+	platformData->appApi.AppClosing(platformInfo, platform, platformData->appMemoryPntr);
 	ShutdownSokolGraphics();
 }
 

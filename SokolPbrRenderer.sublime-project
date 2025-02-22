@@ -610,6 +610,7 @@
 			"v4 ToV4FromImgui(ImVec4 vector)",
 			"v4 ToV4FromRec(rec rectangle)",
 			"v4r ToV4rFromRec(rec rectangle)",
+			"void APP_CLOSING_DEF(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)",
 			"void AddIndicesToVertBufferEx(VertBuffer* buffer, uxx indexSize, uxx numIndices, const void* indicesPntr, bool makeCopy)",
 			"void AddIndicesToVertBufferU16(VertBuffer* buffer, uxx numIndices, const u16* indicesPntr, bool makeCopy)",
 			"void AddIndicesToVertBufferU32(VertBuffer* buffer, uxx numIndices, const u32* indicesPntr, bool makeCopy)",
@@ -759,6 +760,7 @@
 		],
 		"custom_types":
 		[
+			"AppClosing_f",
 			"AppGetApi_f",
 			"AppInit_f",
 			"AppInput",

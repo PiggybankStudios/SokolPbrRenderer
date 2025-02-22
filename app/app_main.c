@@ -843,11 +843,14 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			{
 				igShowDemoWindow(&app->isImguiDemoWindowOpen);
 			}
-			if (igBegin("Test Window", &app->isImguiTestWindowOpen, ImGuiWindowFlags_None))
+			if (app->isImguiTestWindowOpen)
 			{
-				igText("Hello from Dear ImGui!");
+				if (igBegin("Test Window", &app->isImguiTestWindowOpen, ImGuiWindowFlags_None))
+				{
+					igText("Hello from Dear ImGui!");
+				}
+				igEnd();
 			}
-			igEnd();
 			// if (igBegin("Test", &app->testWindowOpen, ImGuiWindowFlags_None))
 			// {
 			// 	igText("Hello from Dear ImGui!");
@@ -875,7 +878,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 				// DrawRectangleOutline(gfx.prevFontFlow.visualRec, 2.0f, White);
 				// for (uxx gIndex = 0; gIndex < app->textLayout.numGlyphs; gIndex++)
 				// {
-				// 	FontFlowGlyph* glyph = &app->textLayout.glyphs[gIndex];
+				// 	FontFlowGlyph* glyph = &app->textL ayout.glyphs[gIndex];
 				// 	DrawRectangleOutlineEx(glyph->drawRec, 1.0f, MonokaiRed, true);
 				// }
 			}
@@ -888,14 +891,27 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	ScratchEnd(scratch2);
 	ScratchEnd(scratch3);
 	
-	#if BUILD_WITH_IMGUI
-	if (!shouldContinueRunning)
-	{
-		WriteLine_D("Saving to disk!");
-		igSaveIniSettingsToDisk(IMGUI_INI_FILE_NAME);
-	}
-	#endif
 	return shouldContinueRunning;
+}
+
+// +==============================+
+// |          AppClosing          |
+// +==============================+
+// void AppClosing(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)
+EXPORT_FUNC(AppClosing) APP_CLOSING_DEF(AppClosing)
+{
+	ScratchBegin(scratch);
+	ScratchBegin1(scratch2, scratch);
+	ScratchBegin2(scratch3, scratch, scratch2);
+	UpdateDllGlobals(inPlatformInfo, inPlatformApi, memoryPntr, nullptr);
+	
+	#if BUILD_WITH_IMGUI
+	igSaveIniSettingsToDisk(app->imgui->io->IniFilename);
+	#endif
+	
+	ScratchEnd(scratch);
+	ScratchEnd(scratch2);
+	ScratchEnd(scratch3);
 }
 
 // +==============================+
@@ -907,5 +923,6 @@ EXPORT_FUNC(AppGetApi) APP_GET_API_DEF(AppGetApi)
 	AppApi result = ZEROED;
 	result.AppInit = AppInit;
 	result.AppUpdate = AppUpdate;
+	result.AppClosing = AppClosing;
 	return result;
 }

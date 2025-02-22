@@ -80,11 +80,15 @@ typedef APP_INIT_DEF(AppInit_f);
 #define APP_UPDATE_DEF(functionName) bool functionName(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr, AppInput* appInput)
 typedef APP_UPDATE_DEF(AppUpdate_f);
 
+#define APP_CLOSING_DEF(functionName) void functionName(PlatformInfo* inPlatformInfo, PlatformApi* inPlatformApi, void* memoryPntr)
+typedef APP_CLOSING_DEF(AppClosing_f);
+
 typedef struct AppApi AppApi;
 struct AppApi
 {
 	AppInit_f* AppInit;
 	AppUpdate_f* AppUpdate;
+	AppClosing_f* AppClosing;
 };
 
 #define APP_GET_API_DEF(functionName) AppApi functionName()
