@@ -400,45 +400,55 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	);
 	r32 mouseLerpX = ClampR32(InverseLerpR32(mouseLerpRec.X, mouseLerpRec.X + mouseLerpRec.Width, mousePos.X), 0.0f, 1.0f);
 	r32 mouseLerpY = ClampR32(InverseLerpR32(mouseLerpRec.Y, mouseLerpRec.Y + mouseLerpRec.Height, mousePos.Y), 0.0f, 1.0f);
+	bool isTyping = false;
+	bool isMouseOverUi = false;
 	
 	#if BUILD_WITH_IMGUI
 	ImguiInput imguiInput = ZEROED;
 	imguiInput.deltaTimeMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
 	imguiInput.keyboard = &appIn->keyboard;
 	imguiInput.mouse = &appIn->mouse;
-	imguiInput.isMouseOverOther = false; //TODO: We need some way of tracking 2D hittests with the mouse!
+	imguiInput.isMouseOverOther = isMouseOverUi;
 	imguiInput.isWindowFocused = appIn->isFocused;
 	imguiInput.windowFocusedChanged = appIn->isFocusedChanged;
-	imguiInput.isTyping = false; //TODO: We need some way of knowing when a input textbox is focused!
+	imguiInput.isTyping = isTyping;
 	ImguiOutput imguiOutput = ZEROED;
 	UpdateImguiInput(app->imgui, &imguiInput, &imguiOutput);
 	platform->SetMouseCursorType(imguiOutput.cursorType);
+	if (!isTyping && imguiOutput.isImguiTypingFocused) { isTyping = true; }
+	if (!isMouseOverUi && imguiOutput.isMouseOverImgui) { isMouseOverUi = true; }
 	#endif //BUILD_WITH_IMGUI
 	
 	#if FP3D_SCENE_ENABLED
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_R))
+	if (!isTyping)
 	{
-		app->cameraPos = NewV3(3, 0.5f, 2);
-		app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
-	}
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_F))
-	{
-		platform->SetMouseLocked(!appIn->mouse.isLocked);
-	}
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Escape) && appIn->mouse.isLocked)
-	{
-		platform->SetMouseLocked(false);
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_R))
+		{
+			app->cameraPos = NewV3(3, 0.5f, 2);
+			app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+		}
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_F))
+		{
+			platform->SetMouseLocked(!appIn->mouse.isLocked);
+		}
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Escape) && appIn->mouse.isLocked)
+		{
+			platform->SetMouseLocked(false);
+		}
 	}
 	#endif FP3D_SCENE_ENABLED
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Plus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
+	if (!isTyping)
 	{
-		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), lastAtlas->fontSize + 2.0f, TEST_FONT_STYLE);
-	}
-	if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Minus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
-	{
-		FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
-		RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), MaxR32(4.0f, lastAtlas->fontSize - 2.0f), TEST_FONT_STYLE);
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Plus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
+		{
+			FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
+			RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), lastAtlas->fontSize + 2.0f, TEST_FONT_STYLE);
+		}
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_Minus) && IsKeyboardKeyDown(&appIn->keyboard, Key_Control))
+		{
+			FontAtlas* lastAtlas = VarArrayGetLast(FontAtlas, &app->testFont.atlases);
+			RasterizeFontAtSize(&app->testFont, StrLit(TEST_FONT_NAME), MaxR32(4.0f, lastAtlas->fontSize - 2.0f), TEST_FONT_STYLE);
+		}
 	}
 	
 	if ((appIn->screenSizeChanged || IsEmptyStr(app->text)) && !appIn->isMinimized)
@@ -459,6 +469,7 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	}
 	
 	#if FP3D_SCENE_ENABLED
+	if (!isMouseOverUi)
 	{
 		if (appIn->mouse.isLocked)
 		{
@@ -478,7 +489,9 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
 		}
 		#endif
-		
+	}
+	if (!isTyping)
+	{
 		v3 horizontalForwardVec = Normalize(NewV3(app->cameraLookDir.X, 0.0f, app->cameraLookDir.Z));
 		v3 horizontalRightVec = Normalize(NewV3(app->cameraLookDir.Z, 0.0f, -app->cameraLookDir.X));
 		const r32 moveSpeed = IsKeyboardKeyDown(&appIn->keyboard, Key_Shift) ? 0.08f : 0.02f;

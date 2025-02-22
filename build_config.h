@@ -41,7 +41,7 @@ Description:
 #define RUN_PIGGEN              0
 
 // Builds imgui.obj from imgui.cpp and cimgui.cpp (really it's building core/ui/ui_imgui_main.cpp which includes those)
-#define BUILD_IMGUI_OBJ           1
+#define BUILD_IMGUI_OBJ           0
 // Same as above but only compiles if the obj doesn't already exist in the _build folder
 #define BUILD_IMGUI_OBJ_IF_NEEDED 1
 
