@@ -151,7 +151,7 @@ if "%BUILD_WITH_ODE%"=="1" (
 	set common_cl_flags=%common_cl_flags% /I"%core%\third_party\ode"
 )
 if "%BUILD_WITH_PHYSX%"=="1" (
-	set pig_core_ld_flags=%pig_core_ld_flags% PhysX_64.lib PhysXFoundation_64.lib PhysXCommon_64.lib PhysXExtensions_static_64.lib PhysXPvdSDK_static_64.lib
+	set pig_core_ld_flags=%pig_core_ld_flags% PhysX_static_64.lib
 )
 if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_debug" /LIBPATH:"%core%\third_party\_lib_debug"

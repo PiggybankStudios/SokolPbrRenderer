@@ -30,8 +30,6 @@ Description:
 #define BUILD_WEB     0
 // Runs the sokol-shdc.exe on all .glsl files in the source directory to produce .glsl.h and .glsl.c files and then compiles the .glsl.c files to .obj
 #define BUILD_SHADERS 0
-// Builds the bullet_main.cpp in C++ mode into bullet.lib which can then be linked into the platform layer
-#define BUILD_BULLET  0
 
 // Compiles core/piggen/main.c
 #define BUILD_PIGGEN            0
@@ -77,10 +75,8 @@ Description:
 // Enables auto-profiling on function entry/exit (for clang only). Dumps to a file that can be viewed by spall
 #define ENABLE_AUTO_PROFILE 0
 
-#define BUILD_WITH_BULLET    0
 #define BUILD_WITH_CLAY      1
 #define BUILD_WITH_IMGUI     1
-#define BUILD_WITH_ODE       0
 #define BUILD_WITH_PHYSX     1
 
 #define PROJECT_READABLE_NAME Sokol PBR Renderer
@@ -106,5 +102,8 @@ Description:
 #define BUILD_WITH_SOKOL_APP 1
 #define BUILD_WITH_SDL       0
 #define BUILD_WITH_OPENVR    0
+#define BUILD_WITH_BULLET    0
+#define BUILD_WITH_ODE       0
+#define BUILD_BULLET  0
 
 #endif //  _BUILD_CONFIG_H
