@@ -18,6 +18,19 @@ void DrawBox(box boundingBox, Color32 color)
 	DrawVertices();
 }
 
+void DrawObb3(obb3 boundingBox, Color32 color)
+{
+	mat4 worldMat = Mat4_Identity;
+	TransformMat4(&worldMat, MakeTranslateMat4(FillV3(-0.5f)));
+	TransformMat4(&worldMat, MakeScaleMat4(boundingBox.Size));
+	TransformMat4(&worldMat, ToMat4FromQuat(boundingBox.Rotation));
+	TransformMat4(&worldMat, MakeTranslateMat4(boundingBox.Center));
+	SetWorldMat(worldMat);
+	SetTintColor(color);
+	BindVertBuffer(&app->cubeBuffer);
+	DrawVertices();
+}
+
 void DrawSphere(Sphere sphere, Color32 color)
 {
 	mat4 worldMat = Mat4_Identity;

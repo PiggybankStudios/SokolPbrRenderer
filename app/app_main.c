@@ -23,6 +23,7 @@ Description:
 #include "ui/ui_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
+#include "phys/phys_all.h"
 
 // #define TEST_FONT_NAME "Georgia"
 // #define TEST_FONT_NAME "Fira Code"
@@ -267,6 +268,9 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	platform->SetWindowTitle(StrLit("Sokol PBR"));
 	LoadWindowIcon();
 	
+	InitRandomSeriesDefault(&app->random);
+	SeedRandomSeriesU64(&app->random, 0); //TODO: Use a time value
+	
 	#if FP3D_SCENE_ENABLED
 	{
 		GeneratedMesh cubeMesh = GenerateVertsForBox(scratch, NewBoxV(V3_Zero, V3_One), White);
@@ -342,17 +346,18 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	app->debugFont = InitFont(stdHeap, StrLit("debugFont"));
 	r32 debugFontSizes[] = { 12, 18, 24 };
 	RasterizeFontAtSizes(&app->debugFont, StrLit("Consolas"), ArrayCount(debugFontSizes), &debugFontSizes[0], FontStyleFlag_Bold);
-	app->fontTestEnabled = true;
+	app->fontTestEnabled = false;
 	
 	#if BUILD_WITH_CLAY
 	InitClayUIRenderer(stdHeap, V2_Zero, &app->clay);
 	app->clayFont = AddClayUIRendererFont(&app->clay, &app->debugFont, GetDefaultFontStyleFlags(&app->debugFont));
+	app->clayTopbarEnabled = true;
 	// Clay_SetDebugModeEnabled(true);
 	#endif
 	
 	#if BUILD_WITH_IMGUI
 	app->imgui = InitImguiUI(platformInfo->platformStdHeapAllowFreeWithoutSize, platform->GetNativeWindowHandle());
-	app->imguiTopbarEnabled = true;
+	app->imguiTopbarEnabled = false;
 	#endif
 	
 	#if FP3D_SCENE_ENABLED
@@ -371,6 +376,14 @@ EXPORT_FUNC(AppInit) APP_INIT_DEF(AppInit)
 	// app->ringTestEnabled = true;
 	// app->horizontalGuidesEnabled = true;
 	// app->verticalGuidesEnabled = true;
+	
+	#if BUILD_WITH_ODE
+	app->physWorld = InitPhysicsODE(stdHeap, TEST_PHYS_GRAVITY);
+	// SpawnPhysicsBox(app->physWorld, NewV3(1, 2, 3));
+	#elif BUILD_WITH_PHYSX
+	app->physWorld = InitPhysicsPhysX(platformInfo->platformStdHeapAllowFreeWithoutSize);
+	CreatePhysicsTest(app->physWorld);
+	#endif
 	
 	app->initialized = true;
 	ScratchEnd(scratch);
@@ -409,17 +422,23 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	#endif
 	rec viewRec = NewRec(0, imguiTopbarHeight, 0, 0);
 	#if BUILD_WITH_CLAY
-	viewRec.Y += CLAY_TOPBAR_HEIGHT;
+	viewRec.Y += app->clayTopbarEnabled ? (r32)CLAY_TOPBAR_HEIGHT : 0.0f;
 	#endif
 	viewRec.Width = screenSize.Width - viewRec.X;
 	viewRec.Height = screenSize.Height - viewRec.Y;
+	
+	#if BUILD_WITH_CLAY
+	{
+		if (IsKeyboardKeyPressed(&appIn->keyboard, CLAY_TOPBAR_TOGGLE_HOTKEY)) { app->clayTopbarEnabled = !app->clayTopbarEnabled; }
+	}
+	#endif
 	
 	#if BUILD_WITH_IMGUI
 	{
 		if (IsKeyboardKeyPressed(&appIn->keyboard, IMGUI_TOPBAR_TOGGLE_HOTKEY)) { app->imguiTopbarEnabled = !app->imguiTopbarEnabled; }
 		
 		ImguiInput imguiInput = ZEROED;
-		imguiInput.deltaTimeMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
+		imguiInput.elapsedMs = NUM_MS_PER_SECOND/60.0f; //TODO: Actually get deltaTime from appInput
 		imguiInput.keyboard = &appIn->keyboard;
 		imguiInput.mouse = &appIn->mouse;
 		imguiInput.isMouseOverOther = isMouseOverUi;
@@ -439,9 +458,32 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	{
 		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_R))
 		{
+			#if BUILD_WITH_ODE
+			VarArrayLoop(&app->physWorld->bodies, bIndex)
+			{
+				VarArrayLoopGet(PhysicsBody, body, &app->physWorld->bodies, bIndex);
+				SetBodyPosition(app->physWorld, body->index, NewV3(GetRandR32Range(&app->random, 0.4f, 0.6f), 2 + (bIndex * (TEST_PHYS_BOX_SIZE.Y * 1.2f)), GetRandR32Range(&app->random, 0.4f, 0.6f)));
+				SetBodyRotation(app->physWorld, body->index, Quat_Identity);
+			}
+			#elif BUILD_WITH_PHYSX
+			CreatePhysicsTest(app->physWorld);
+			#else
 			app->cameraPos = NewV3(3, 0.5f, 2);
 			app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+			#endif
 		}
+		#if BUILD_WITH_ODE
+		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_B))
+		{
+			SpawnPhysicsBox(app->physWorld,
+				NewObb3V(
+					NewV3(GetRandR32Range(&app->random, 0, 1), 2, GetRandR32Range(&app->random, 0, 1)),
+					TEST_PHYS_BOX_SIZE,
+					Quat_Identity),
+				TEST_PHYS_BOX_DENSITY
+			);
+		}
+		#endif
 		if (IsKeyboardKeyPressed(&appIn->keyboard, Key_F))
 		{
 			platform->SetMouseLocked(!appIn->mouse.isLocked);
@@ -520,6 +562,12 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 	}
 	#endif //FP3D_SCENE_ENABLED
 	
+	#if BUILD_WITH_ODE
+	UpdatePhysics(app->physWorld, TEST_PHYS_SIM_STEP_SIZE, NUM_MS_PER_SECOND/60.0f); //TODO: Actually get deltaTime from appInput!
+	#elif BUILD_WITH_PHYSX
+	UpdatePhysicsWorld(app->physWorld, NUM_MS_PER_SECOND/60.0f); //TODO: Actually get deltaTime from appInput!
+	#endif
+	
 	BeginFrame(platform->GetSokolSwapchain(), appIn->screenSize, PalBlueLight, 1.0f);
 	{
 		// +==============================+
@@ -533,9 +581,9 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			SetShaderUniformByNameV4(&app->pbrShader, StrLit("cameraPos"), ToV4From3(app->cameraPos, 1.0f));
 			
 			#if defined(SOKOL_GLCORE)
-			mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
+			mat4 projMat = MakePerspectiveMat4Gl(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 400);
 			#else
-			mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 25);
+			mat4 projMat = MakePerspectiveMat4Dx(ToRadians32(45), (r32)appIn->screenSize.Width/(r32)appIn->screenSize.Height, 0.05f, 400);
 			#endif
 			SetProjectionMat(projMat);
 			mat4 viewMat = MakeLookAtMat4(app->cameraPos, Add(app->cameraPos, app->cameraLookDir), V3_Up);
@@ -569,6 +617,33 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			BindTextureAtIndex(&gfx.pixelTexture, 3);
 			BindTextureAtIndex(&gfx.pixelTexture, 4);
 			DrawBox(NewBoxV(Sub(app->lightPos, FillV3(0.05f)), FillV3(0.1f)), White);
+			
+			#if BUILD_WITH_ODE
+			VarArrayLoop(&app->physWorld->bodies, bIndex)
+			{
+				VarArrayLoopGet(PhysicsBody, body, &app->physWorld->bodies, bIndex);
+				v3 bodyPosition = GetBodyPosition(app->physWorld, body->index);
+				quat bodyRotation = GetBodyRotation(app->physWorld, body->index);
+				DrawObb3(NewObb3V(bodyPosition, TEST_PHYS_BOX_SIZE, bodyRotation), MonokaiRed);
+			}
+			#elif BUILD_WITH_PHYSX
+			VarArrayLoop(&app->physWorld->bodies, bIndex)
+			{
+				VarArrayLoopGet(PhysicsBody, body, &app->physWorld->bodies, bIndex);
+				PhysicsBodyTransform transform = GetPhysicsBodyTransform(body);
+				v3 position = NewV3(transform.position.X, transform.position.Y, transform.position.Z);
+				quat rotation = NewQuat(transform.rotation.X, transform.rotation.Y, transform.rotation.Z, transform.rotation.W);
+				if (body->index == app->physWorld->groundPlaneBodyIndex)
+				{
+					//TODO: Figure out how PhysX want's us to intepret rotation/position on a Plane when drawing it
+					DrawObb3(NewObb3V(position, NewV3(100.0f, 0.0001f, 100.0f), Quat_Identity), PalGreenDarker);
+				}
+				else
+				{
+					DrawObb3(NewObb3V(position, NewV3(1.0f, 1.0f, 1.0f), rotation), GetPredefPalColorByIndex(bIndex));
+				}
+			}
+			#endif
 		}
 		#endif //FP3D_SCENE_ENABLED
 		
@@ -738,120 +813,124 @@ EXPORT_FUNC(AppUpdate) APP_UPDATE_DEF(AppUpdate)
 			{
 				CLAY(ClayFullscreenContainer("FullscreenContainer", (u16)imguiTopbarHeight))
 				{
-					CLAY(ClayTopbar("Topbar", CLAY_TOPBAR_HEIGHT, MonokaiBack))
+					if (app->clayTopbarEnabled)
 					{
-						CLAY({ .layout = { .sizing = { .width=CLAY_SIZING_FIXED(4) } } }){}
-						
-						if (ClayTopBtn("Debug", &app->topbarDebugMenuOpen, MonokaiBack, MonokaiWhite, 340))
+						CLAY(ClayTopbar("Topbar", CLAY_TOPBAR_HEIGHT, MonokaiBack))
 						{
-							if (ClayBtn(ScratchPrint("%s Font", app->fontTestEnabled ? "Disable" : "Enable"), Transparent, app->fontTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->fontTestEnabled = !app->fontTestEnabled;
-							} Clay__CloseElement();
+							CLAY({ .layout = { .sizing = { .width=CLAY_SIZING_FIXED(4) } } }){}
 							
-							if (ClayBtn(ScratchPrint("%s Border Thickness", app->borderThicknessTestEnabled ? "Disable" : "Enable"), Transparent, app->borderThicknessTestEnabled ? MonokaiGreen : MonokaiWhite))
+							if (ClayTopBtn("Debug", &app->topbarDebugMenuOpen, MonokaiBack, MonokaiWhite, 340))
 							{
-								app->borderThicknessTestEnabled = !app->borderThicknessTestEnabled;
-							} Clay__CloseElement();
-							
-							if (ClayBtn(ScratchPrint("%s Rounded Rectangle", app->roundedRecTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedRecTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->roundedRecTestEnabled = !app->roundedRecTestEnabled;
-							} Clay__CloseElement();
-							
-							if (ClayBtn(ScratchPrint("%s Rounded Rectangle Border", app->roundedBorderTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedBorderTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->roundedBorderTestEnabled = !app->roundedBorderTestEnabled;
-							} Clay__CloseElement();
-							if (app->roundedBorderTestEnabled)
-							{
-								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+								if (ClayBtn(ScratchPrint("%s Font", app->fontTestEnabled ? "Disable" : "Enable"), Transparent, app->fontTestEnabled ? MonokaiGreen : MonokaiWhite))
 								{
-									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
-									ClayLabeledSlider("Border Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->roundedBorderThickness, 1, 100, 180, 20, Black, MonokaiGray1);
-								}
-							}
-							
-							if (ClayBtn(ScratchPrint("%s Circle", app->circleTestEnabled ? "Disable" : "Enable"), Transparent, app->circleTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->circleTestEnabled = !app->circleTestEnabled;
-							} Clay__CloseElement();
-							if (app->circleTestEnabled)
-							{
-								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									app->fontTestEnabled = !app->fontTestEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Border Thickness", app->borderThicknessTestEnabled ? "Disable" : "Enable"), Transparent, app->borderThicknessTestEnabled ? MonokaiGreen : MonokaiWhite))
 								{
-									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
-									ClayLabeledSlider("Circle Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->circlePieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
-								}
-							}
-							
-							if (ClayBtn(ScratchPrint("%s Ring", app->ringTestEnabled ? "Disable" : "Enable"), Transparent, app->ringTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->ringTestEnabled = !app->ringTestEnabled;
-							} Clay__CloseElement();
-							if (app->ringTestEnabled)
-							{
-								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									app->borderThicknessTestEnabled = !app->borderThicknessTestEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Rounded Rectangle", app->roundedRecTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedRecTestEnabled ? MonokaiGreen : MonokaiWhite))
 								{
-									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
-									ClayLabeledSlider("Ring Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->ringPieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
-								}
-								CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									app->roundedRecTestEnabled = !app->roundedRecTestEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Rounded Rectangle Border", app->roundedBorderTestEnabled ? "Disable" : "Enable"), Transparent, app->roundedBorderTestEnabled ? MonokaiGreen : MonokaiWhite))
 								{
-									//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
-									ClayLabeledSlider("Ring Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->ringThickness, 1, 100, 180, 20, Black, MonokaiGray1);
+									app->roundedBorderTestEnabled = !app->roundedBorderTestEnabled;
+								} Clay__CloseElement();
+								if (app->roundedBorderTestEnabled)
+								{
+									CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									{
+										//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+										ClayLabeledSlider("Border Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->roundedBorderThickness, 1, 100, 180, 20, Black, MonokaiGray1);
+									}
 								}
-							}
-							
-							if (ClayBtn(ScratchPrint("%s Horizontal Guides", app->horizontalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->horizontalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->horizontalGuidesEnabled = !app->horizontalGuidesEnabled;
+								
+								if (ClayBtn(ScratchPrint("%s Circle", app->circleTestEnabled ? "Disable" : "Enable"), Transparent, app->circleTestEnabled ? MonokaiGreen : MonokaiWhite))
+								{
+									app->circleTestEnabled = !app->circleTestEnabled;
+								} Clay__CloseElement();
+								if (app->circleTestEnabled)
+								{
+									CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									{
+										//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+										ClayLabeledSlider("Circle Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->circlePieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
+									}
+								}
+								
+								if (ClayBtn(ScratchPrint("%s Ring", app->ringTestEnabled ? "Disable" : "Enable"), Transparent, app->ringTestEnabled ? MonokaiGreen : MonokaiWhite))
+								{
+									app->ringTestEnabled = !app->ringTestEnabled;
+								} Clay__CloseElement();
+								if (app->ringTestEnabled)
+								{
+									CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									{
+										//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+										ClayLabeledSlider("Ring Angle Start:   -", app->clayFont, 12, MonokaiWhite, &app->ringPieceAngleOffset, 0, TwoPi32, 180, 20, Black, MonokaiGray1);
+									}
+									CLAY({ .layout = { .padding = CLAY_PADDING_ALL(CLAY_DEF_PADDING*4) } })
+									{
+										//TODO: We should fix the text measurement so we don't need these trailing spaces and dash
+										ClayLabeledSlider("Ring Thickness:   -", app->clayFont, 12, MonokaiWhite, &app->ringThickness, 1, 100, 180, 20, Black, MonokaiGray1);
+									}
+								}
+								
+								if (ClayBtn(ScratchPrint("%s Horizontal Guides", app->horizontalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->horizontalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
+								{
+									app->horizontalGuidesEnabled = !app->horizontalGuidesEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Vertical Guides", app->verticalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->verticalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
+								{
+									app->verticalGuidesEnabled = !app->verticalGuidesEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Clay UI Debug", Clay_IsDebugModeEnabled() ? "Hide" : "Show"), Transparent, Clay_IsDebugModeEnabled() ? MonokaiGreen : MonokaiWhite))
+								{
+									Clay_SetDebugModeEnabled(!Clay_IsDebugModeEnabled());
+								} Clay__CloseElement();
+								
+								Clay__CloseElement();
+								Clay__CloseElement();
 							} Clay__CloseElement();
 							
-							if (ClayBtn(ScratchPrint("%s Vertical Guides", app->verticalGuidesEnabled ? "Disable" : "Enable"), Transparent, app->verticalGuidesEnabled ? MonokaiGreen : MonokaiWhite))
+							#if FP3D_SCENE_ENABLED
+							if (ClayTopBtn("Camera", &app->topbarCameraMenuOpen, MonokaiBack, MonokaiWhite, 200))
 							{
-								app->verticalGuidesEnabled = !app->verticalGuidesEnabled;
+								if (ClayBtn("Reset (R)", Transparent, MonokaiWhite))
+								{
+									app->cameraPos = NewV3(3, 0.5f, 2);
+									app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
+								} Clay__CloseElement();
+								
+								if (ClayBtn(ScratchPrint("%s Scissor", app->scissorTestEnabled ? "Disable" : "Enable"), Transparent, app->scissorTestEnabled ? MonokaiGreen : MonokaiWhite))
+								{
+									app->scissorTestEnabled = !app->scissorTestEnabled;
+								} Clay__CloseElement();
+								
+								if (ClayBtn("Capture Mouse (F)", Transparent, MonokaiWhite))
+								{
+									platform->SetMouseLocked(true);
+								} Clay__CloseElement();
+								
+								Clay__CloseElement();
+								Clay__CloseElement();
 							} Clay__CloseElement();
-							
-							if (ClayBtn(ScratchPrint("%s Clay UI Debug", Clay_IsDebugModeEnabled() ? "Hide" : "Show"), Transparent, Clay_IsDebugModeEnabled() ? MonokaiGreen : MonokaiWhite))
-							{
-								Clay_SetDebugModeEnabled(!Clay_IsDebugModeEnabled());
-							} Clay__CloseElement();
-							
-							Clay__CloseElement();
-							Clay__CloseElement();
-						} Clay__CloseElement();
-						
-						#if FP3D_SCENE_ENABLED
-						if (ClayTopBtn("Camera", &app->topbarCameraMenuOpen, MonokaiBack, MonokaiWhite, 200))
-						{
-							if (ClayBtn("Reset (R)", Transparent, MonokaiWhite))
-							{
-								app->cameraPos = NewV3(3, 0.5f, 2);
-								app->cameraLookDir = Normalize(Sub(app->spherePos, app->cameraPos));
-							} Clay__CloseElement();
-							
-							if (ClayBtn(ScratchPrint("%s Scissor", app->scissorTestEnabled ? "Disable" : "Enable"), Transparent, app->scissorTestEnabled ? MonokaiGreen : MonokaiWhite))
-							{
-								app->scissorTestEnabled = !app->scissorTestEnabled;
-							} Clay__CloseElement();
-							
-							if (ClayBtn("Capture Mouse (F)", Transparent, MonokaiWhite))
-							{
-								platform->SetMouseLocked(true);
-							} Clay__CloseElement();
-							
-							Clay__CloseElement();
-							Clay__CloseElement();
-						} Clay__CloseElement();
-						#endif //FP3D_SCENE_ENABLED
+							#endif //FP3D_SCENE_ENABLED
+						}
 					}
 					
 					CLAY({ .layout = { .sizing = { .height=CLAY_SIZING_GROW(0) } } }){}
 					
 					#if FP3D_SCENE_ENABLED
-					Str8 statusText = ScratchPrintStr("WASD=Move Camera     QE=Up/Down     %s     R=Reset",
-						appIn->mouse.isLocked ? "(Press ESC to Release Mouse)" : "F=Capture Mouse"
+					Str8 statusText = ScratchPrintStr("WASD=Move Camera     QE=Up/Down     %s     R=Reset     %s=Toggle Topbar",
+						appIn->mouse.isLocked ? "(Press ESC to Release Mouse)" : "F=Capture Mouse",
+						GetKeyStr(CLAY_TOPBAR_TOGGLE_HOTKEY)
 					);
 					#else
 					Str8 statusText = StrLit("Move your mouse!");

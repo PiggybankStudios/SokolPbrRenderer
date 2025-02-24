@@ -14,6 +14,12 @@ Date:   02\02\2025
 #define CLAY_DEF_PADDING   2 //px
 #define CLAY_TOPBAR_HEIGHT 30 //px
 
+#define CLAY_TOPBAR_TOGGLE_HOTKEY Key_F7
 #define IMGUI_TOPBAR_TOGGLE_HOTKEY Key_F6
+
+#define TEST_PHYS_GRAVITY       NewV3(0, -9.8f, 0)
+#define TEST_PHYS_BOX_SIZE      NewV3(0.2f, 0.1f, 0.15f)
+#define TEST_PHYS_BOX_DENSITY   1.0f
+#define TEST_PHYS_SIM_STEP_SIZE 1 //ms
 
 #endif //  _DEFINES_H

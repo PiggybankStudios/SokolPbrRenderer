@@ -23,6 +23,7 @@ Description:
 #include "ui/ui_all.h"
 #include "gfx/gfx_all.h"
 #include "gfx/gfx_system_global.h"
+#include "phys/phys_all.h"
 
 #define SOKOL_APP_IMPL
 #if TARGET_IS_LINUX

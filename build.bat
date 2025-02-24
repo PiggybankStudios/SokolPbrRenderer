@@ -28,6 +28,8 @@ for /f "delims=" %%i in ('%extract_define% BUILD_SHADERS') do set BUILD_SHADERS=
 for /f "delims=" %%i in ('%extract_define% BUILD_BULLET') do set BUILD_BULLET=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_IMGUI_OBJ') do set BUILD_IMGUI_OBJ=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_IMGUI_OBJ_IF_NEEDED') do set BUILD_IMGUI_OBJ_IF_NEEDED=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_PHYSX_OBJ') do set BUILD_PHYSX_OBJ=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_PHYSX_OBJ_IF_NEEDED') do set BUILD_PHYSX_OBJ_IF_NEEDED=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIGGEN') do set BUILD_PIGGEN=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_PIGGEN_IF_NEEDED') do set BUILD_PIGGEN_IF_NEEDED=%%i
 for /f "delims=" %%i in ('%extract_define% RUN_PIGGEN') do set RUN_PIGGEN=%%i
@@ -42,7 +44,8 @@ for /f "delims=" %%i in ('%extract_define% CONVERT_WASM_TO_WAT') do set CONVERT_
 for /f "delims=" %%i in ('%extract_define% USE_EMSCRIPTEN') do set USE_EMSCRIPTEN=%%i
 for /f "delims=" %%i in ('%extract_define% ENABLE_AUTO_PROFILE') do set ENABLE_AUTO_PROFILE=%%i
 for /f "delims=" %%i in ('%extract_define% BUILD_WITH_BULLET') do set BUILD_WITH_BULLET=%%i
-for /f "delims=" %%i in ('%extract_define% BUILD_WITH_IMGUI') do set BUILD_WITH_IMGUI=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_WITH_ODE') do set BUILD_WITH_ODE=%%i
+for /f "delims=" %%i in ('%extract_define% BUILD_WITH_PHYSX') do set BUILD_WITH_PHYSX=%%i
 for /f "delims=" %%i in ('%extract_define% PROJECT_DLL_NAME') do set PROJECT_DLL_NAME=%%i
 for /f "delims=" %%i in ('%extract_define% PROJECT_EXE_NAME') do set PROJECT_EXE_NAME=%%i
 
@@ -81,7 +84,8 @@ set cpp_cl_flags=/std:c++20 /wd4471 /wd5054
 :: /nologo = Suppress the startup banner
 :: /W4 = Warning level 4 [just below /Wall]
 :: /WX = Treat warnings as errors
-set common_cl_flags=/FC /nologo /W4 /WX
+:: /Gd = Use __cdecl calling convention (this is the default)
+set common_cl_flags=/FC /nologo /W4 /WX /Gd
 :: -fdiagnostics-absolute-paths = Print absolute paths in diagnostics TODO: Figure out how to resolve these back to windows paths for Sublime error linking?
 :: -std=gnu2x = Use C20+ language spec (NOTE: We originally had -std=c2x but that didn't define MAP_ANONYMOUS and mmap was failing)
 :: NOTE: Clang Warning Options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
@@ -104,9 +108,6 @@ set common_cl_flags=%common_cl_flags% /wd4130 /wd4201 /wd4324 /wd4458 /wd4505 /w
 set common_clang_flags=%common_clang_flags% -Wno-switch -Wno-unused-function
 :: /I = Adds an include directory to search in when resolving #includes
 set common_cl_flags=%common_cl_flags% /I"%root%" /I"%app%" /I"%core%"
-if "%BUILD_WITH_IMGUI%"=="1" (
-	set common_cl_flags=%common_cl_flags% /I"%core%\third_party\imgui"
-)
 :: -I = Add directory to the end of the list of include search paths
 :: -lm = Include the math library (required for stuff like sinf, atan, etc.)
 :: -ldl = Needed for dlopen and similar functions
@@ -144,6 +145,13 @@ set pig_core_ld_flags=
 set platform_ld_flags=
 if "%BUILD_WITH_BULLET%"=="1" (
 	set platform_ld_flags=%platform_ld_flags% Bullet3Collision.lib Bullet3Common.lib Bullet3Dynamics.lib Bullet3Geometry.lib BulletCollision.lib BulletDynamics.lib BulletInverseDynamics.lib BulletInverseDynamicsUtils.lib BulletSoftBody.lib LinearMath.lib
+)
+if "%BUILD_WITH_ODE%"=="1" (
+	set pig_core_ld_flags=%pig_core_ld_flags% ode_singled.lib
+	set common_cl_flags=%common_cl_flags% /I"%core%\third_party\ode"
+)
+if "%BUILD_WITH_PHYSX%"=="1" (
+	set pig_core_ld_flags=%pig_core_ld_flags% PhysX_64.lib PhysXFoundation_64.lib PhysXCommon_64.lib PhysXExtensions_static_64.lib PhysXPvdSDK_static_64.lib
 )
 if "%DEBUG_BUILD%"=="1" (
 	set common_ld_flags=%common_ld_flags% /LIBPATH:"%root%\third_party\_lib_debug" /LIBPATH:"%core%\third_party\_lib_debug"
@@ -243,7 +251,7 @@ if "%RUN_PIGGEN%"=="1" (
 :: +--------------------------------------------------------------+
 set imgui_source_path=%core%/ui/ui_imgui_main.cpp
 set imgui_obj_path=imgui.obj
-set imgui_cl_args=/c %common_cl_flags% %cpp_cl_flags% /I"%core%/third_party/imgui" /Fo%imgui_obj_path% %imgui_source_path%
+set imgui_cl_args=/c %common_cl_flags% %cpp_cl_flags% /I"%core%\third_party\imgui" /Fo%imgui_obj_path% %imgui_source_path%
 
 if "%BUILD_IMGUI_OBJ_IF_NEEDED%"=="1" (
 	if "%BUILD_WINDOWS%"=="1" (
@@ -261,6 +269,35 @@ if "%BUILD_IMGUI_OBJ%"=="1" (
 		echo [Building %imgui_obj_path% for Windows...]
 		cl %imgui_cl_args%
 		echo [Built %imgui_obj_path% for Windows!]
+	)
+)
+
+:: +--------------------------------------------------------------+
+:: |                     Build physx_capi.obj                     |
+:: +--------------------------------------------------------------+
+set physx_source_path=%core%/phys/phys_physx_capi_main.cpp
+set physx_obj_path=physx_capi.obj
+set physx_cl_args=/c %common_cl_flags% %cpp_cl_flags% /I"%core%\third_party\physx" /Fo%physx_obj_path% %physx_source_path%
+if "%BUILD_WITH_PHYSX%"=="1" (
+	set pig_core_ld_flags=%pig_core_ld_flags% %physx_obj_path%
+)
+
+if "%BUILD_PHYSX_OBJ_IF_NEEDED%"=="1" (
+	if "%BUILD_WINDOWS%"=="1" (
+		if not exist %physx_obj_path% (
+			set BUILD_PHYSX_OBJ=1
+		)
+	)
+)
+
+if "%BUILD_PHYSX_OBJ%"=="1" (
+	if "%BUILD_WINDOWS%"=="1" (
+		del "%physx_obj_path%" > NUL 2> NUL
+		
+		echo.
+		echo [Building %physx_obj_path% for Windows...]
+		cl %physx_cl_args%
+		echo [Built %physx_obj_path% for Windows!]
 	)
 )
 

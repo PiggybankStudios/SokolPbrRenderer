@@ -45,6 +45,11 @@ Description:
 // Same as above but only compiles if the obj doesn't already exist in the _build folder
 #define BUILD_IMGUI_OBJ_IF_NEEDED 1
 
+// Builds physx_capi.obj from core/phys/phys_physx_capi_main.cpp
+#define BUILD_PHYSX_OBJ           1
+// Same as above but only compiles if the obj doesn't already exist in the _build folder
+#define BUILD_PHYSX_OBJ_IF_NEEDED 1
+
 // Compiles piggen/main.c to either dynamic or static library
 #define BUILD_PIG_CORE_LIB            1
 // Same as above but only compiles if the dll doesn't already exist in the _build folder
@@ -75,6 +80,8 @@ Description:
 #define BUILD_WITH_BULLET    0
 #define BUILD_WITH_CLAY      1
 #define BUILD_WITH_IMGUI     1
+#define BUILD_WITH_ODE       0
+#define BUILD_WITH_PHYSX     1
 
 #define PROJECT_READABLE_NAME Sokol PBR Renderer
 #define PROJECT_FOLDER_NAME   SokolPbrRenderer

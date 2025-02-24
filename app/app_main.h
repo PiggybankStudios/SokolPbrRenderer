@@ -19,9 +19,11 @@ typedef struct AppData AppData;
 struct AppData
 {
 	bool initialized;
+	RandomSeries random;
 	
 	#if BUILD_WITH_CLAY
 	ClayUIRenderer clay;
+	bool clayTopbarEnabled;
 	u16 clayFont;
 	#endif
 	
@@ -91,6 +93,10 @@ struct AppData
 	r32 circlePieceAngleOffset;
 	r32 ringPieceAngleOffset;
 	r32 ringThickness;
+	
+	#if BUILD_WITH_ODE || BUILD_WITH_PHYSX
+	PhysicsWorld* physWorld;
+	#endif
 };
 
 #endif //  _APP_MAIN_H

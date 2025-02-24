@@ -6,3 +6,4 @@ _data/*.dll
 *.blend
 *.blend1
 _data/resources/model/fire_hydrant2/
+_data/debug_window_layout.ini
